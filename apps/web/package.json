@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "build:shared": "npm --prefix ../.. run build:shared",
+    "prebuild": "npm run build:shared",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

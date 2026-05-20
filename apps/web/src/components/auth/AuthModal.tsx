@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ClipboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,6 +18,7 @@ type AuthStep = 'phone' | 'otp' | 'success';
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 45;
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '');
+const RECAPTCHA_CONTAINER_ID = 'recaptcha-container';
 
 function normalizeDigits(value: string): string {
   return value.replace(/\D/g, '');
@@ -57,17 +58,23 @@ export function AuthModal() {
   const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const sendInFlightRef = useRef(false);
+  const verifyInFlightRef = useRef(false);
 
   const e164Phone = useMemo(() => {
     const dialCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`;
     return `${dialCode}${normalizeDigits(phone)}`;
   }, [countryCode, phone]);
 
-  const phoneReady = countryCode === '+91' ? phone.length === 10 : phone.length >= 6 && phone.length <= 14;
+  const phoneReady = countryCode === '+91' ? /^[6-9]\d{9}$/.test(phone) : phone.length >= 6 && phone.length <= 14;
   const otpCode = otp.join('');
   const otpReady = otpCode.length === OTP_LENGTH;
+
+  const clearRecaptchaVerifier = useCallback(() => {
+    recaptchaVerifierRef.current?.clear();
+    recaptchaVerifierRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!authModalOpen) {
@@ -77,10 +84,17 @@ export function AuthModal() {
       setError('');
       setCooldown(0);
       setConfirmationResult(null);
-      recaptchaVerifierRef.current?.clear();
-      recaptchaVerifierRef.current = null;
+      sendInFlightRef.current = false;
+      verifyInFlightRef.current = false;
+      clearRecaptchaVerifier();
     }
-  }, [authModalOpen]);
+  }, [authModalOpen, clearRecaptchaVerifier]);
+
+  useEffect(() => {
+    return () => {
+      clearRecaptchaVerifier();
+    };
+  }, [clearRecaptchaVerifier]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -90,12 +104,12 @@ export function AuthModal() {
 
   const getRecaptchaVerifier = () => {
     if (recaptchaVerifierRef.current) return recaptchaVerifierRef.current;
-    if (!recaptchaContainerRef.current) {
+    if (!document.getElementById(RECAPTCHA_CONTAINER_ID)) {
       throw new Error('reCAPTCHA container is not ready.');
     }
 
     const auth = getFirebaseAuth();
-    recaptchaVerifierRef.current = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+    recaptchaVerifierRef.current = new RecaptchaVerifier(auth, RECAPTCHA_CONTAINER_ID, {
       size: 'invisible',
     });
     return recaptchaVerifierRef.current;
@@ -129,8 +143,9 @@ export function AuthModal() {
   };
 
   const sendOtp = async () => {
-    if (!phoneReady || loading || cooldown > 0) return;
+    if (sendInFlightRef.current || !phoneReady || loading || cooldown > 0) return;
 
+    sendInFlightRef.current = true;
     setLoading(true);
     setError('');
 
@@ -143,17 +158,18 @@ export function AuthModal() {
       setCooldown(RESEND_SECONDS);
       window.setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } catch (sendError) {
-      recaptchaVerifierRef.current?.clear();
-      recaptchaVerifierRef.current = null;
+      clearRecaptchaVerifier();
       setError(getFirebaseErrorMessage(sendError));
     } finally {
+      sendInFlightRef.current = false;
       setLoading(false);
     }
   };
 
   const verifyOtp = async () => {
-    if (!confirmationResult || !otpReady || loading) return;
+    if (verifyInFlightRef.current || !confirmationResult || !otpReady || loading) return;
 
+    verifyInFlightRef.current = true;
     setLoading(true);
     setError('');
 
@@ -166,6 +182,7 @@ export function AuthModal() {
       inputRefs.current[0]?.focus();
       setError(getFirebaseErrorMessage(verifyError));
     } finally {
+      verifyInFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -228,7 +245,7 @@ export function AuthModal() {
             transition={{ type: 'spring', damping: 22, stiffness: 220 }}
           >
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-aph-gold via-aph-terracotta to-aph-mango" />
-            <div ref={recaptchaContainerRef} />
+            <div id={RECAPTCHA_CONTAINER_ID} aria-hidden="true" />
 
             <div className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-aph-gold">Secure Phone Login</p>
@@ -279,6 +296,11 @@ export function AuthModal() {
                   <MagneticButton className="mt-6 w-full" onClick={sendOtp} disabled={!phoneReady || loading}>
                     {loading ? 'Sending OTP...' : 'Send OTP'}
                   </MagneticButton>
+                  {phone && !phoneReady && (
+                    <p className="mt-3 text-center text-xs text-aph-muted" role="status">
+                      Enter a valid {countryCode === '+91' ? '10-digit Indian mobile number' : 'mobile number'}.
+                    </p>
+                  )}
                 </motion.div>
               )}
 

@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authService } from '../services/auth.service';
 import { env } from '../config/env';
-import { UnauthorizedError } from '../lib/errors';
+import { UnauthorizedError, ValidationError } from '../lib/errors';
 
 const phoneSchema = z.object({
   phone: z.string().min(10).max(15),
@@ -12,6 +12,10 @@ const verifySchema = z.object({
   phone: z.string().min(10).max(15),
   code: z.string().length(6),
   name: z.string().optional(),
+});
+
+const firebaseLoginSchema = z.object({
+  firebaseToken: z.string().min(100),
 });
 
 function authCookieOptions() {
@@ -36,6 +40,9 @@ function firstHeaderValue(value: string | string[] | undefined): string | undefi
 export const authController = {
   requestOtp: async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (env.AUTH_PROVIDER !== 'legacy') {
+        throw new ValidationError('Legacy OTP login is disabled');
+      }
       const { phone } = phoneSchema.parse(req.body);
       const result = await authService.requestOtp(phone, req.ip);
       res.json({ success: true, data: result, requestId: req.requestId });
@@ -46,11 +53,30 @@ export const authController = {
 
   verifyOtp: async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (env.AUTH_PROVIDER !== 'legacy') {
+        throw new ValidationError('Legacy OTP login is disabled');
+      }
       const body = verifySchema.parse(req.body);
       const { tokens, user } = await authService.verifyOtpAndLogin(
         body.phone,
         body.code,
         body.name,
+        firstHeaderValue(req.headers['x-device-info']),
+        req.ip,
+        req.headers['user-agent']
+      );
+      setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+      res.json({ success: true, data: { user, accessToken: tokens.accessToken }, requestId: req.requestId });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  firebaseLogin: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { firebaseToken } = firebaseLoginSchema.parse(req.body);
+      const { tokens, user } = await authService.firebaseLogin(
+        firebaseToken,
         firstHeaderValue(req.headers['x-device-info']),
         req.ip,
         req.headers['user-agent']

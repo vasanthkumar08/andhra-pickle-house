@@ -11,6 +11,8 @@ services:
         value: 20
       - key: NODE_ENV
         value: production
+      - key: AUTH_PROVIDER
+        value: firebase
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
@@ -24,4 +26,10 @@ services:
       - key: WEB_URL
         sync: false
       - key: API_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
         sync: false

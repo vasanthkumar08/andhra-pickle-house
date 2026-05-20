@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    AUTH_PROVIDER: z.enum(['firebase', 'legacy']).default('firebase'),
     API_PORT: z
       .preprocess((value) => value ?? process.env.PORT, z.coerce.number().int().positive().default(4000)),
     DATABASE_URL: z
@@ -43,6 +44,9 @@ export const envSchema = z
     CLOUDINARY_API_SECRET: z.string().optional(),
     CLOUDINARY_UPLOAD_FOLDER: z.string().default('andhra-pickle-house'),
     CLOUDINARY_REQUIRED: z.coerce.boolean().default(false),
+    FIREBASE_PROJECT_ID: z.string().optional(),
+    FIREBASE_CLIENT_EMAIL: z.string().optional(),
+    FIREBASE_PRIVATE_KEY: z.string().optional(),
     QUEUE_WORKER_ENABLED: z.coerce.boolean().default(false),
     WORKER_CONCURRENCY: z.coerce.number().int().positive().max(50).default(5),
   })
@@ -65,7 +69,19 @@ export const envSchema = z
       }
     }
 
-    if (value.NODE_ENV === 'production' && value.OTP_PROVIDER === 'console') {
+    if (value.AUTH_PROVIDER === 'firebase') {
+      for (const key of ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY'] as const) {
+        if (!value[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: 'Firebase Admin credentials are required when AUTH_PROVIDER=firebase.',
+          });
+        }
+      }
+    }
+
+    if (value.AUTH_PROVIDER === 'legacy' && value.NODE_ENV === 'production' && value.OTP_PROVIDER === 'console') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['OTP_PROVIDER'],

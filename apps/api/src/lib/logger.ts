@@ -23,6 +23,8 @@ export const logger = pino({
       '*.JWT_REFRESH_SECRET',
       '*.TWILIO_AUTH_TOKEN',
       '*.CLOUDINARY_API_SECRET',
+      '*.FIREBASE_PRIVATE_KEY',
+      '*.firebaseToken',
     ],
     censor: '[redacted]',
   },

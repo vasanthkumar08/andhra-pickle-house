@@ -1,0 +1,31 @@
+{
+  "name": "andhra-pickle-house",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:combined",
+    "dev:frontend": "npm run dev -w @aph/web",
+    "dev:backend": "npm run dev -w @aph/api",
+    "dev:combined": "concurrently -n API,WEB -c green,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:split": "node scripts/dev-split.mjs",
+    "dev:worker": "npm run worker:dev -w @aph/api",
+    "clean:web": "node scripts/clean-web-cache.mjs",
+    "infra:up": "node scripts/infra-up.mjs",
+    "infra:down": "docker compose down",
+    "lint": "npm run lint -w @aph/web --if-present",
+    "typecheck": "npm run typecheck -w @aph/shared && npm run typecheck -w @aph/api && npm run typecheck -w @aph/web",
+    "build": "npm run build -w @aph/shared && npm run build -w @aph/api && npm run build -w @aph/web",
+    "db:generate": "npm run db:generate -w @aph/api",
+    "db:migrate": "npm run db:migrate -w @aph/api",
+    "db:seed": "npm run db:seed -w @aph/api",
+    "db:studio": "npm run db:studio -w @aph/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  }
+}

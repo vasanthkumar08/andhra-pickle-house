@@ -1,0 +1,14 @@
+.git
+.next
+.next-dev-*
+node_modules
+apps/*/node_modules
+apps/web/.next
+apps/web/.next-dev-*
+apps/api/dist
+packages/shared/dist
+uploads
+*.log
+.env
+.env.*
+!.env.example

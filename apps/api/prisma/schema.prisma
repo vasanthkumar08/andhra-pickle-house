@@ -1,0 +1,420 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum OtpPurpose {
+  LOGIN
+  VERIFY_PHONE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  phone         String    @unique
+  name          String?
+  role          UserRole  @default(CUSTOMER)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  loginAttempts Int       @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  sessions      Session[]
+  otpRecords    OtpVerification[]
+  cart          Cart?
+  addresses     Address[]
+  orders        Order[]
+  auditLogs     AuditLog[]
+  analytics     AnalyticsEvent[]
+  wishlist      WishlistItem[]
+  reviews       Review[]
+
+  @@index([phone])
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshHash  String
+  deviceInfo   String?
+  ipAddress    String?
+  userAgent    String?
+  isRevoked    Boolean  @default(false)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshHash])
+  @@map("sessions")
+}
+
+model OtpVerification {
+  id          String     @id @default(cuid())
+  phone       String
+  purpose     OtpPurpose @default(LOGIN)
+  codeHash    String
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  ipAddress   String?
+  createdAt   DateTime   @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([phone, purpose])
+  @@index([expiresAt])
+  @@map("otp_verifications")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  nameTe      String?
+  description String?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  name            String
+  nameTe          String?
+  description     String
+  imageUrl        String    @default("")
+  spiceLevel      Int       @default(3)
+  basePrice       Float     @default(0)
+  discountPercent Int       @default(0)
+  ingredients     String?
+  videoUrl        String?
+  featured        Boolean   @default(false)
+  trending        Boolean   @default(false)
+  rating          Float     @default(0)
+  reviewsCount    Int       @default(0)
+  isActive        Boolean   @default(true)
+  sortOrder       Int       @default(0)
+  categoryId      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  deletedAt       DateTime?
+  version         Int       @default(1)
+
+  category   Category?      @relation(fields: [categoryId], references: [id])
+  inventory  Inventory[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  images     ProductImage[]
+  reviews    Review[]
+  wishlist   WishlistItem[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([featured])
+  @@index([trending])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  title     String?
+  body      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@map("wishlist_items")
+}
+
+model Coupon {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  discountPercent Int     @default(0)
+  maxUses       Int?
+  usedCount     Int       @default(0)
+  expiresAt     DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  @@map("coupons")
+}
+
+model Inventory {
+  id           String   @id @default(cuid())
+  productId    String
+  weightGrams  Int
+  stock        Int      @default(0)
+  reserved     Int      @default(0)
+  lowThreshold Int      @default(5)
+  updatedAt    DateTime @updatedAt
+  version      Int      @default(1)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, weightGrams])
+  @@index([productId])
+  @@map("inventory")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id          String @id @default(cuid())
+  cartId      String
+  productId   String
+  weightGrams Int
+  quantity    Int    @default(1)
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([cartId, productId, weightGrams])
+  @@map("cart_items")
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String?
+  line1     String
+  line2     String?
+  city      String
+  state     String
+  pincode   String
+  phone     String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderRef        String      @unique
+  orderToken      String      @unique
+  userId          String
+  status          OrderStatus @default(PENDING)
+  subtotalPaise   Int
+  snapshotJson    Json
+  addressSnapshot Json
+  deliveryNotes   String?
+  customerPhone   String
+  customerName    String
+  whatsappSent    Boolean     @default(false)
+  version         Int         @default(1)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@index([orderRef])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String @id @default(cuid())
+  orderId       String
+  productId     String
+  productName   String
+  weightGrams   Int
+  quantity      Int
+  unitPricePaise Int
+  lineTotalPaise Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  avatarUrl String?
+  videoUrl  String?
+  reviewEn  String
+  reviewTe  String?
+  rating    Int      @default(5)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@map("testimonials")
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  type      String
+  url       String
+  alt       String?
+  section   String?
+  sortOrder Int      @default(0)
+  metadata  Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([section, isActive])
+  @@map("media_assets")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  event     String
+  payload   Json?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([event])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+model DomainEventOutbox {
+  id            String    @id @default(cuid())
+  type          String
+  payload       Json
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  maxAttempts   Int       @default(10)
+  nextAttemptAt DateTime  @default(now())
+  lastError     String?
+  lockedAt      DateTime?
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([type])
+  @@map("domain_event_outbox")
+}
+
+model NotificationDelivery {
+  id           String    @id @default(cuid())
+  eventId      String
+  channel      String
+  recipient    String
+  status       String    @default("PENDING")
+  provider     String
+  providerId   String?
+  error        String?
+  attempts     Int       @default(0)
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([eventId, channel, recipient])
+  @@index([status])
+  @@map("notification_deliveries")
+}

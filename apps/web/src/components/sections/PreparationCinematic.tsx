@@ -23,7 +23,7 @@ export function PreparationCinematic() {
       <motion.div className="absolute inset-0" style={{ scale: videoScale }}>
         <HeroVideo
           src="/videos/hero-middle-frame.mp4"
-          poster="https://images.unsplash.com/photo-1609501676725-7186f3e59e33?w=1920&q=80"
+          poster="/images/pickle-kitchen.svg"
           crop="zoom-spice"
         />
       </motion.div>

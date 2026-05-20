@@ -7,22 +7,22 @@ const ingredients = [
   {
     name: 'Raw Mango',
     note: 'Cut firm, sun-kissed, and naturally tangy.',
-    img: 'https://images.unsplash.com/photo-1605027990121-c736661734de?auto=format&fit=crop&w=900&q=85',
+    img: '/images/ingredient-mango.svg',
   },
   {
     name: 'Red Chilli',
     note: 'Deep color and slow heat from dried chillies.',
-    img: 'https://images.unsplash.com/photo-1596040033229-a0b4514a2f86?auto=format&fit=crop&w=900&q=85',
+    img: '/images/ingredient-spice.svg',
   },
   {
     name: 'Mustard',
     note: 'Freshly ground for the sharp Andhra bite.',
-    img: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=900&q=85',
+    img: '/images/ingredient-spice.svg',
   },
   {
     name: 'Cold-Pressed Oil',
     note: 'Sesame oil that carries spice into every piece.',
-    img: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=900&q=85',
+    img: '/images/ingredient-oil.svg',
   },
 ];
 
@@ -53,7 +53,14 @@ export function IngredientsShowcase() {
               transition={{ delay: index * 0.06 }}
             >
               <div className="relative aspect-[4/3]">
-                <Image src={item.img} alt={item.name} fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
+                <Image
+                  src={item.img}
+                  alt={item.name}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                />
               </div>
               <div className="p-5">
                 <h3 className="text-lg font-semibold text-aph-ink">{item.name}</h3>

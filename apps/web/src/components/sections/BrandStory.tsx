@@ -15,9 +15,10 @@ export function BrandStory() {
       >
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl">
           <Image
-            src="https://images.unsplash.com/photo-1609501676725-7186f3e59e33?auto=format&fit=crop&w=1200&q=88"
-            alt="Grandmother preparing pickles"
+            src="/images/pickle-kitchen.svg"
+            alt="Illustrated Andhra pickle kitchen with jars, mangoes, spices, and oil"
             fill
+            unoptimized
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 50vw"
           />

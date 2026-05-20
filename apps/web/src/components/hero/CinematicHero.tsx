@@ -16,7 +16,7 @@ export function CinematicHero() {
     <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden border-b border-aph-gold/15">
       <HeroVideo
         src="/videos/hero-first-frame.mp4"
-        poster="https://images.unsplash.com/photo-1609501676725-7186f3e59e33?auto=format&fit=crop&w=1800&q=90"
+        poster="/images/pickle-kitchen.svg"
         crop="center"
         priority
       />

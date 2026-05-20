@@ -29,6 +29,10 @@ function setAuthCookies(res: Response, accessToken: string, refreshToken: string
   res.cookie('refreshToken', refreshToken, { ...cookieOpts, maxAge: 7 * 24 * 60 * 60 * 1000 });
 }
 
+function firstHeaderValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export const authController = {
   requestOtp: async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -47,7 +51,7 @@ export const authController = {
         body.phone,
         body.code,
         body.name,
-        req.headers['x-device-info'] as string,
+        firstHeaderValue(req.headers['x-device-info']),
         req.ip,
         req.headers['user-agent']
       );

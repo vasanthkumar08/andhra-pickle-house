@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
+import type { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { env } from '../config/env';
 import { otpService } from './otp.service';
@@ -8,27 +10,36 @@ import { UnauthorizedError } from '../lib/errors';
 import { appendOutboxEvent, publishPendingOutbox } from '../events/outbox';
 import { logger } from '../lib/logger';
 import { UserRepository, userRepository } from '../repositories/user.repository';
-import { SessionRepository, sessionRepository } from '../repositories/session.repository';
+import {
+  SessionRepository,
+  sessionRepository,
+  type PrismaClientLike,
+} from '../repositories/session.repository';
 
 interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }
 
+const refreshTokenPayloadSchema = z.object({
+  userId: z.string(),
+  role: z.string(),
+});
+
 export class AuthService {
-  private signAccess(userId: string, role: string, sessionId: string) {
+  private signAccess(userId: string, role: string, sessionId: string): string {
     return jwt.sign({ userId, role, sessionId }, env.JWT_ACCESS_SECRET, {
       expiresIn: env.JWT_ACCESS_EXPIRES as jwt.SignOptions['expiresIn'],
     });
   }
 
-  private signRefresh(userId: string, role: string) {
+  private signRefresh(userId: string, role: string): string {
     return jwt.sign({ userId, role, jti: nanoid() }, env.JWT_REFRESH_SECRET, {
       expiresIn: env.JWT_REFRESH_EXPIRES as jwt.SignOptions['expiresIn'],
     });
   }
 
-  async requestOtp(phone: string, ipAddress?: string) {
+  async requestOtp(phone: string, ipAddress?: string): Promise<{ expiresIn: number }> {
     return otpService.sendOtp(phone, ipAddress);
   }
 
@@ -42,7 +53,7 @@ export class AuthService {
   ): Promise<{ tokens: TokenPair; user: { id: string; phone: string; name: string | null; role: string } }> {
     const normalized = await otpService.verifyOtp(phone, code);
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const users = new UserRepository(tx);
       let user = await users.findByPhone(normalized);
       let registered = false;
@@ -114,7 +125,7 @@ export class AuthService {
   }
 
   private async createSessionWithClient(
-    client: Pick<typeof prisma, 'session'>,
+    client: PrismaClientLike,
     userId: string,
     role: string,
     deviceInfo?: string,
@@ -127,7 +138,7 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    const sessions = new SessionRepository(client as typeof prisma);
+    const sessions = new SessionRepository(client);
     const session = await sessions.create({
       userId,
       refreshHash,
@@ -142,12 +153,9 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string): Promise<TokenPair> {
-    let payload: { userId: string; role: string };
+    let payload: z.infer<typeof refreshTokenPayloadSchema>;
     try {
-      payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as {
-        userId: string;
-        role: string;
-      };
+      payload = refreshTokenPayloadSchema.parse(jwt.verify(refreshToken, env.JWT_REFRESH_SECRET));
     } catch (error) {
       logger.debug({ err: error }, 'Refresh token verification failed');
       throw new UnauthorizedError('Invalid refresh token');
@@ -165,7 +173,7 @@ export class AuthService {
 
     if (!validSession) throw new UnauthorizedError('Session not found');
 
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const txSessions = new SessionRepository(tx);
       const revoked = await txSessions.revokeIfActive(validSession.id);
       if (revoked.count !== 1) throw new UnauthorizedError('Refresh token already used');
@@ -188,7 +196,7 @@ export class AuthService {
     });
   }
 
-  async logout(userId: string, refreshToken?: string) {
+  async logout(userId: string, refreshToken?: string): Promise<void> {
     if (refreshToken) {
       const sessions = await sessionRepository.findActiveForUser(userId);
       for (const s of sessions) {

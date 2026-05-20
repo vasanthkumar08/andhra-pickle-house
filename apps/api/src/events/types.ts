@@ -1,36 +1,48 @@
-export type DomainEventType = 'order.created' | 'inventory.reserved' | 'user.registered';
+import { z } from 'zod';
 
-export interface OrderCreatedEvent {
-  type: 'order.created';
-  id: string;
-  occurredAt: string;
-  payload: {
-    orderId: string;
-    orderRef: string;
-  };
-}
+export const domainEventTypeSchema = z.enum(['order.created', 'inventory.reserved', 'user.registered']);
+export type DomainEventType = z.infer<typeof domainEventTypeSchema>;
 
-export interface InventoryReservedEvent {
-  type: 'inventory.reserved';
-  id: string;
-  occurredAt: string;
-  payload: {
-    orderId: string;
-    orderRef: string;
-  };
-}
+export const orderCreatedEventSchema = z.object({
+  type: z.literal('order.created'),
+  id: z.string(),
+  occurredAt: z.string(),
+  payload: z.object({
+    orderId: z.string(),
+    orderRef: z.string(),
+  }),
+});
 
-export interface UserRegisteredEvent {
-  type: 'user.registered';
-  id: string;
-  occurredAt: string;
-  payload: {
-    userId: string;
-    phone: string;
-  };
-}
+export const inventoryReservedEventSchema = z.object({
+  type: z.literal('inventory.reserved'),
+  id: z.string(),
+  occurredAt: z.string(),
+  payload: z.object({
+    orderId: z.string(),
+    orderRef: z.string(),
+  }),
+});
 
-export type DomainEvent = OrderCreatedEvent | InventoryReservedEvent | UserRegisteredEvent;
+export const userRegisteredEventSchema = z.object({
+  type: z.literal('user.registered'),
+  id: z.string(),
+  occurredAt: z.string(),
+  payload: z.object({
+    userId: z.string(),
+    phone: z.string(),
+  }),
+});
+
+export const domainEventSchema = z.discriminatedUnion('type', [
+  orderCreatedEventSchema,
+  inventoryReservedEventSchema,
+  userRegisteredEventSchema,
+]);
+
+export type OrderCreatedEvent = z.infer<typeof orderCreatedEventSchema>;
+export type InventoryReservedEvent = z.infer<typeof inventoryReservedEventSchema>;
+export type UserRegisteredEvent = z.infer<typeof userRegisteredEventSchema>;
+export type DomainEvent = z.infer<typeof domainEventSchema>;
 
 export type PersistedDomainEvent = DomainEvent & {
   outboxId: string;

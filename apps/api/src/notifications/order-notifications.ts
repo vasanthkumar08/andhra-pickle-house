@@ -1,8 +1,22 @@
 import { WEIGHT_OPTIONS } from '@aph/shared';
+import { z } from 'zod';
 import { env } from '../config/env';
 import { prisma } from '../lib/prisma';
 import { NotFoundError } from '../lib/errors';
 import type { SendOrderConfirmationInput } from './provider';
+
+const orderSnapshotSchema = z.object({
+  items: z.array(
+    z.object({
+      name: z.string().optional(),
+      weight: z.string(),
+      quantity: z.number(),
+      lineTotal: z.number(),
+    })
+  ),
+  address: z.string(),
+  deliveryNotes: z.string().optional(),
+});
 
 function formatCurrency(paise: number): string {
   return `₹${(paise / 100).toFixed(0)}`;
@@ -16,11 +30,7 @@ export async function buildOrderConfirmation(orderId: string): Promise<SendOrder
 
   if (!order) throw new NotFoundError('Order not found for notification');
 
-  const snapshot = order.snapshotJson as {
-    items: Array<{ name?: string; weight: string; quantity: number; lineTotal: number }>;
-    address: string;
-    deliveryNotes?: string;
-  };
+  const snapshot = orderSnapshotSchema.parse(order.snapshotJson);
   const verifyUrl = `${env.WEB_URL}/order/verify?ref=${order.orderRef}&token=${order.orderToken}`;
   const itemsList = snapshot.items
     .map((i) => `- ${i.name} (${i.weight}) x ${i.quantity} = ${formatCurrency(i.lineTotal)}`)

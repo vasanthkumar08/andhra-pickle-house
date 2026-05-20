@@ -1,22 +1,34 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { productService, type CatalogQuery } from '../services/product.service';
 
 const router = Router();
+const catalogQuerySchema = z.object({
+  q: z.string().optional(),
+  category: z.string().optional(),
+  featured: z.enum(['true', 'false']).optional(),
+  trending: z.enum(['true', 'false']).optional(),
+  sort: z.enum(['price_asc', 'price_desc', 'rating', 'newest']).optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().optional(),
+});
 
 router.get('/', async (req, res, next) => {
   try {
     const hasFilters = Object.keys(req.query).length > 0;
 
     if (hasFilters) {
-      const data = await productService.listCatalog({
-        q: req.query.q as string | undefined,
-        categorySlug: req.query.category as string | undefined,
-        featured: req.query.featured === 'true',
-        trending: req.query.trending === 'true',
-        sort: req.query.sort as CatalogQuery['sort'],
-        page: Number(req.query.page) || 1,
-        limit: Number(req.query.limit) || 12,
-      });
+      const query = catalogQuerySchema.parse(req.query);
+      const catalogQuery: CatalogQuery = {
+        q: query.q,
+        categorySlug: query.category,
+        featured: query.featured === 'true',
+        trending: query.trending === 'true',
+        sort: query.sort,
+        page: query.page ?? 1,
+        limit: query.limit ?? 12,
+      };
+      const data = await productService.listCatalog(catalogQuery);
       return res.json({ success: true, data, requestId: req.requestId });
     }
 

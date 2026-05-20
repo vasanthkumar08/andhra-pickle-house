@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import { env } from '../config/env';
 import { UnauthorizedError, ForbiddenError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
@@ -10,6 +11,12 @@ export interface JwtPayload {
   role: string;
   sessionId: string;
 }
+
+const jwtPayloadSchema = z.object({
+  userId: z.string(),
+  role: z.string(),
+  sessionId: z.string(),
+});
 
 declare global {
   namespace Express {
@@ -29,7 +36,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   if (!token) return next(new UnauthorizedError('Login required'));
 
   try {
-    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
+    const payload = jwtPayloadSchema.parse(jwt.verify(token, env.JWT_ACCESS_SECRET));
     if (!payload.sessionId) throw new UnauthorizedError('Session missing from token');
     const session = await prisma.session.findFirst({
       where: {
@@ -53,7 +60,7 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
   const token = req.cookies?.accessToken;
   if (!token) return next();
   try {
-    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
+    const payload = jwtPayloadSchema.parse(jwt.verify(token, env.JWT_ACCESS_SECRET));
     if (!payload.sessionId) return next();
     const session = await prisma.session.findFirst({
       where: {

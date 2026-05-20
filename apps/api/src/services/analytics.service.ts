@@ -1,13 +1,15 @@
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
+import type { JsonObject } from '../lib/json';
 
 export class AnalyticsService {
-  async track(event: string, payload?: Record<string, unknown>, userId?: string, sessionId?: string) {
+  async track(event: string, payload?: JsonObject, userId?: string, sessionId?: string): Promise<void> {
+    const analyticsPayload: Prisma.AnalyticsEventCreateInput['payload'] = payload ?? {};
     await prisma.analyticsEvent.create({
       data: {
         event,
-        payload: (payload ?? {}) as Prisma.InputJsonValue,
+        payload: analyticsPayload,
         userId,
         sessionId,
       },
@@ -58,9 +60,9 @@ export class AnalyticsService {
       }),
     ]);
 
-    let dailyOrders: Array<{ day: Date; count: bigint }> = [];
+    let dailyOrders: Array<{ day: Date; count: number }> = [];
     try {
-      dailyOrders = await prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
+      dailyOrders = await prisma.$queryRaw<Array<{ day: Date; count: number }>>`
         SELECT DATE("createdAt") as day, COUNT(*)::int as count
         FROM orders
         WHERE "createdAt" >= ${last30}

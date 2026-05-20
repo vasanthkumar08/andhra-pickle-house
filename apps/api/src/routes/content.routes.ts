@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheGetVersion, cacheSet } from '../lib/redis';
 
@@ -24,7 +25,7 @@ router.get('/testimonials', async (req, res, next) => {
 
 router.get('/media', async (req, res, next) => {
   try {
-    const section = req.query.section as string | undefined;
+    const section = z.string().optional().parse(req.query.section);
     const items = await prisma.mediaAsset.findMany({
       where: { isActive: true, ...(section ? { section } : {}) },
       orderBy: { sortOrder: 'asc' },

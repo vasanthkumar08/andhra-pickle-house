@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
-type PrismaClientLike = typeof prisma | Prisma.TransactionClient;
+export type PrismaClientLike = typeof prisma | Prisma.TransactionClient;
 
 export class SessionRepository {
   constructor(private readonly client: PrismaClientLike = prisma) {}

@@ -2,19 +2,21 @@ import type { Prisma } from '@prisma/client';
 import { createQueue, QUEUE_NAMES } from '../queues';
 import { logger } from '../lib/logger';
 import { prisma } from '../lib/prisma';
-import type { DomainEvent, PersistedDomainEvent } from './types';
+import { domainEventSchema, type DomainEvent, type PersistedDomainEvent } from './types';
 
 const eventsQueue = createQueue(QUEUE_NAMES.events);
+type OutboxPayloadInput = Prisma.DomainEventOutboxCreateInput['payload'];
 
 export async function appendOutboxEvent(
   tx: Prisma.TransactionClient,
   event: DomainEvent
 ): Promise<void> {
+  const payload: OutboxPayloadInput = event;
   await tx.domainEventOutbox.create({
     data: {
       id: event.id,
       type: event.type,
-      payload: event as unknown as Prisma.InputJsonValue,
+      payload,
     },
   });
 }
@@ -46,7 +48,7 @@ export async function publishPendingOutbox(limit = 25): Promise<number> {
     if (claimed.count !== 1) continue;
 
     try {
-      const event = record.payload as unknown as DomainEvent;
+      const event = domainEventSchema.parse(record.payload);
       const persisted: PersistedDomainEvent = { ...event, outboxId: record.id };
       await eventsQueue.add(event.type, persisted, {
         jobId: `${event.type}:${record.id}`,

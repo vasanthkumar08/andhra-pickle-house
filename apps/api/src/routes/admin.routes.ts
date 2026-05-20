@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { OrderStatus, type Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireAdmin } from '../middleware/auth';
 import { orderService } from '../services/order.service';
@@ -7,14 +8,15 @@ import { productService } from '../services/product.service';
 import { prisma } from '../lib/prisma';
 import { cacheBumpVersion } from '../lib/redis';
 import sanitizeHtml from 'sanitize-html';
+import { jsonObjectSchema } from '../lib/json';
 
 const router = Router();
 router.use(authenticate, requireAdmin);
 
 router.get('/orders', async (req, res, next) => {
   try {
-    const status = req.query.status as string | undefined;
-    const page = Number(req.query.page) || 1;
+    const status = z.nativeEnum(OrderStatus).optional().parse(req.query.status);
+    const page = z.coerce.number().int().positive().default(1).parse(req.query.page);
     const result = await orderService.listForAdmin(status, page);
     res.json({ success: true, data: result });
   } catch (e) {
@@ -24,7 +26,7 @@ router.get('/orders', async (req, res, next) => {
 
 router.patch('/orders/:id/status', async (req, res, next) => {
   try {
-    const status = z.enum(['PENDING', 'CONFIRMED', 'PREPARING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).parse(req.body.status);
+    const status = z.nativeEnum(OrderStatus).parse(req.body.status);
     const order = await orderService.updateStatus(req.params.id, status);
     res.json({ success: true, data: order });
   } catch (e) {
@@ -232,13 +234,14 @@ router.post('/media', async (req, res, next) => {
         alt: z.string().optional(),
         section: z.string(),
         sortOrder: z.number().int().optional(),
-        metadata: z.record(z.string(), z.unknown()).optional(),
+        metadata: jsonObjectSchema.optional(),
       })
       .parse(req.body);
+    const metadata: Prisma.MediaAssetCreateInput['metadata'] = body.metadata;
     const asset = await prisma.mediaAsset.create({
       data: {
         ...body,
-        metadata: body.metadata as object | undefined,
+        metadata,
       },
     });
     res.json({ success: true, data: asset });

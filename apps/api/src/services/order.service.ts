@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { ORDER_TOKEN_PREFIX } from '@aph/shared';
-import type { Prisma } from '@prisma/client';
+import { OrderStatus, type Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ValidationError, NotFoundError } from '../lib/errors';
 import { calcOrderPrice } from '../notifications/order-notifications';
@@ -32,7 +32,7 @@ export class OrderService {
     const orderRef = this.generateOrderRef();
     const orderToken = nanoid(32);
 
-    const order = await prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
       const cart = await tx.cart.findUnique({
         where: { userId },
@@ -253,8 +253,8 @@ export class OrderService {
     });
   }
 
-  async listForAdmin(status?: string, page = 1, limit = 20) {
-    const where = status ? { status: status as 'PENDING' } : {};
+  async listForAdmin(status?: OrderStatus, page = 1, limit = 20) {
+    const where: Prisma.OrderWhereInput = status ? { status } : {};
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
@@ -268,10 +268,10 @@ export class OrderService {
     return { orders, total, page, limit };
   }
 
-  async updateStatus(orderId: string, status: string) {
+  async updateStatus(orderId: string, status: OrderStatus) {
     return prisma.order.update({
       where: { id: orderId },
-      data: { status: status as 'CONFIRMED' },
+      data: { status },
     });
   }
 

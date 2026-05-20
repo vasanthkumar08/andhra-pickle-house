@@ -9,10 +9,14 @@ declare global {
   }
 }
 
+function firstHeaderValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export function requestIdMiddleware(req: Request, res: Response, next: NextFunction) {
   req.requestId =
-    (req.headers['x-request-id'] as string | undefined) ||
-    (req.headers['x-correlation-id'] as string | undefined) ||
+    firstHeaderValue(req.headers['x-request-id']) ||
+    firstHeaderValue(req.headers['x-correlation-id']) ||
     uuidv4();
   res.setHeader('X-Request-Id', req.requestId);
   res.setHeader('X-Correlation-Id', req.requestId);

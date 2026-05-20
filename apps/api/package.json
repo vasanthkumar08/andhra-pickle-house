@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "worker:dev": "tsx watch src/worker.ts",
-    "prebuild": "npm run db:generate",
+    "build:shared": "npm --prefix ../.. run build:shared",
+    "prebuild": "npm run build:shared && npm run db:generate",
     "build": "tsc",
-    "pretypecheck": "npm run db:generate",
+    "pretypecheck": "npm run build:shared && npm run db:generate",
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
     "db:generate": "prisma generate",

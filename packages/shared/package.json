@@ -21,8 +21,8 @@
   "sideEffects": false,
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean --target node20",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --target node20",
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --target node20 --tsconfig tsconfig.build.json",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --target node20 --tsconfig tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

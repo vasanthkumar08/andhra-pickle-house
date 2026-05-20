@@ -3,7 +3,8 @@ import { z } from 'zod';
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    API_PORT: z.coerce.number().int().positive().default(4000),
+    API_PORT: z
+      .preprocess((value) => value ?? process.env.PORT, z.coerce.number().int().positive().default(4000)),
     DATABASE_URL: z
       .string()
       .min(1)

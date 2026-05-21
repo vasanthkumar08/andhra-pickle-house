@@ -8,27 +8,64 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase';
+import {
+  FirebasePublicConfigError,
+  getFirebaseAuth,
+  warnIfFirebaseDomainMayBeUnauthorized,
+} from '@/lib/firebase';
 import { useStore } from '@/store/use-store';
 import { api } from '@/lib/api';
 import { MagneticButton } from '../ui/MagneticButton';
 
 type AuthStep = 'phone' | 'otp' | 'success';
+type NormalizedPhone = { ok: true; value: string } | { ok: false; error: string };
+type FirebaseAuthErrorLike = Error & { code?: string; customData?: unknown };
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 45;
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '');
 const RECAPTCHA_CONTAINER_ID = 'recaptcha-container';
+const AUTH_ERROR_ID = 'auth-error';
 
 function normalizeDigits(value: string): string {
   return value.replace(/\D/g, '');
 }
 
+function normalizePhoneForFirebase(rawPhone: string, countryCode: string): NormalizedPhone {
+  const digits = normalizeDigits(rawPhone);
+
+  if (countryCode === '+91') {
+    const nationalNumber = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+
+    if (!/^[6-9]\d{9}$/.test(nationalNumber)) {
+      return { ok: false, error: 'Enter a valid 10-digit Indian mobile number.' };
+    }
+
+    return { ok: true, value: `+91${nationalNumber}` };
+  }
+
+  if (digits.length < 6 || digits.length > 14) {
+    return { ok: false, error: 'Enter a valid mobile number.' };
+  }
+
+  const dialCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`;
+  return { ok: true, value: `${dialCode}${digits}` };
+}
+
+function getFirebaseErrorCode(error: unknown): string | undefined {
+  return error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : undefined;
+}
+
 function getFirebaseErrorMessage(error: unknown): string {
+  if (error instanceof FirebasePublicConfigError) {
+    return 'Firebase login is not configured correctly. Check the public Firebase env vars.';
+  }
+
   if (!(error instanceof Error)) return 'Something went wrong. Please try again.';
 
-  if ('code' in error && typeof error.code === 'string') {
-    switch (error.code) {
+  const code = getFirebaseErrorCode(error);
+  if (code) {
+    switch (code) {
       case 'auth/invalid-phone-number':
         return 'Enter a valid mobile number.';
       case 'auth/too-many-requests':
@@ -56,6 +93,18 @@ function getFirebaseErrorMessage(error: unknown): string {
   return error.message || 'Something went wrong. Please try again.';
 }
 
+function logFirebaseOtpError(error: unknown): void {
+  if (process.env.NODE_ENV === 'production') return;
+
+  const firebaseError = error as Partial<FirebaseAuthErrorLike>;
+  console.error('Firebase phone OTP failed', {
+    code: getFirebaseErrorCode(error),
+    message: error instanceof Error ? error.message : String(error),
+    customData: firebaseError.customData,
+    fullError: error,
+  });
+}
+
 export function AuthModal() {
   const { authModalOpen, closeAuthModal, pendingAdd, setUser, setCart } = useStore();
   const [step, setStep] = useState<AuthStep>('phone');
@@ -67,21 +116,26 @@ export function AuthModal() {
   const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const phoneInputRef = useRef<HTMLInputElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const sendInFlightRef = useRef(false);
   const verifyInFlightRef = useRef(false);
 
-  const e164Phone = useMemo(() => {
-    const dialCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`;
-    return `${dialCode}${normalizeDigits(phone)}`;
-  }, [countryCode, phone]);
+  const normalizedPhone = useMemo(() => normalizePhoneForFirebase(phone, countryCode), [countryCode, phone]);
+  const e164Phone = normalizedPhone.ok ? normalizedPhone.value : '';
 
-  const phoneReady = countryCode === '+91' ? /^[6-9]\d{9}$/.test(phone) : phone.length >= 6 && phone.length <= 14;
+  const phoneReady = normalizedPhone.ok;
   const otpCode = otp.join('');
   const otpReady = otpCode.length === OTP_LENGTH;
+  const busy = loading || sendInFlightRef.current || verifyInFlightRef.current;
 
   const clearRecaptchaVerifier = useCallback(() => {
-    recaptchaVerifierRef.current?.clear();
+    try {
+      recaptchaVerifierRef.current?.clear();
+    } finally {
+      document.getElementById(RECAPTCHA_CONTAINER_ID)?.replaceChildren();
+    }
     recaptchaVerifierRef.current = null;
   }, []);
 
@@ -100,6 +154,49 @@ export function AuthModal() {
   }, [authModalOpen, clearRecaptchaVerifier]);
 
   useEffect(() => {
+    if (!authModalOpen) return;
+
+    warnIfFirebaseDomainMayBeUnauthorized();
+
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    window.setTimeout(() => phoneInputRef.current?.focus(), 100);
+
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape' && !loading) {
+        closeAuthModal();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !modalRef.current) return;
+
+      const focusable = Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => element.offsetParent !== null);
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [authModalOpen, closeAuthModal, loading]);
+
+  useEffect(() => {
     return () => {
       clearRecaptchaVerifier();
     };
@@ -113,10 +210,12 @@ export function AuthModal() {
 
   const getRecaptchaVerifier = () => {
     if (recaptchaVerifierRef.current) return recaptchaVerifierRef.current;
-    if (!document.getElementById(RECAPTCHA_CONTAINER_ID)) {
+    const container = document.getElementById(RECAPTCHA_CONTAINER_ID);
+    if (!container) {
       throw new Error('reCAPTCHA container is not ready.');
     }
 
+    container.replaceChildren();
     const auth = getFirebaseAuth();
     recaptchaVerifierRef.current = new RecaptchaVerifier(auth, RECAPTCHA_CONTAINER_ID, {
       size: 'invisible',
@@ -152,7 +251,11 @@ export function AuthModal() {
   };
 
   const sendOtp = async () => {
-    if (sendInFlightRef.current || !phoneReady || loading || cooldown > 0) return;
+    if (sendInFlightRef.current || loading || cooldown > 0) return;
+    if (!normalizedPhone.ok) {
+      setError(normalizedPhone.error);
+      return;
+    }
 
     sendInFlightRef.current = true;
     setLoading(true);
@@ -160,16 +263,14 @@ export function AuthModal() {
 
     try {
       const verifier = getRecaptchaVerifier();
-      const result = await signInWithPhoneNumber(getFirebaseAuth(), e164Phone, verifier);
+      const result = await signInWithPhoneNumber(getFirebaseAuth(), normalizedPhone.value, verifier);
       setConfirmationResult(result);
       setStep('otp');
       setOtp([...EMPTY_OTP]);
       setCooldown(RESEND_SECONDS);
       window.setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } catch (sendError) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Firebase phone OTP failed', sendError);
-      }
+      logFirebaseOtpError(sendError);
       clearRecaptchaVerifier();
       setError(getFirebaseErrorMessage(sendError));
     } finally {
@@ -190,6 +291,7 @@ export function AuthModal() {
       const firebaseToken = await credential.user.getIdToken();
       await handleBackendSession(firebaseToken);
     } catch (verifyError) {
+      logFirebaseOtpError(verifyError);
       setOtp([...EMPTY_OTP]);
       inputRefs.current[0]?.focus();
       setError(getFirebaseErrorMessage(verifyError));
@@ -241,15 +343,19 @@ export function AuthModal() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="auth-title"
+          aria-describedby={error ? AUTH_ERROR_ID : undefined}
+          aria-busy={busy}
         >
           <motion.button
             type="button"
             aria-label="Close login"
             className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            disabled={loading}
             onClick={loading ? undefined : closeAuthModal}
           />
 
           <motion.div
+            ref={modalRef}
             className="relative w-full max-w-md overflow-hidden rounded-t-[28px] border border-aph-gold/20 bg-aph-card/95 p-6 shadow-2xl backdrop-blur-xl sm:rounded-[28px] sm:p-8"
             initial={{ y: 120, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -301,11 +407,14 @@ export function AuthModal() {
                       value={phone}
                       onChange={(event) => setPhone(normalizeDigits(event.target.value).slice(0, 14))}
                       placeholder="9876543210"
+                      ref={phoneInputRef}
+                      aria-invalid={phone ? !phoneReady : undefined}
+                      aria-describedby={error ? AUTH_ERROR_ID : undefined}
                       className="h-12 w-full rounded-xl border border-aph-gold/20 bg-aph-bg px-4 text-lg tracking-wide outline-none focus:border-aph-gold"
                       disabled={loading}
                     />
                   </div>
-                  <MagneticButton className="mt-6 w-full" onClick={sendOtp} disabled={!phoneReady || loading}>
+                  <MagneticButton className="mt-6 w-full" onClick={sendOtp} disabled={!phoneReady || loading || cooldown > 0}>
                     {loading ? 'Sending OTP...' : 'Send OTP'}
                   </MagneticButton>
                   {phone && !phoneReady && (
@@ -339,6 +448,8 @@ export function AuthModal() {
                         autoComplete={index === 0 ? 'one-time-code' : 'off'}
                         maxLength={1}
                         value={digit}
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={error ? AUTH_ERROR_ID : undefined}
                         onChange={(event) => handleOtpChange(index, event.target.value)}
                         onKeyDown={(event) => handleOtpKeyDown(index, event)}
                         onPaste={handleOtpPaste}
@@ -380,6 +491,8 @@ export function AuthModal() {
 
             {error && (
               <motion.p
+                id={AUTH_ERROR_ID}
+                role="alert"
                 className="mt-4 rounded-xl border border-aph-terracotta/20 bg-aph-terracotta/10 px-4 py-3 text-center text-sm text-aph-terracotta"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}

@@ -11,11 +11,13 @@ import { ProductSkeleton } from '@/components/ui/ProductSkeleton';
 export default function ShopPage() {
   const [data, setData] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<string>('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError('');
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (sort) params.set('sort', sort);
@@ -31,6 +33,9 @@ export default function ShopPage() {
       });
     } else if (res.data) {
       setData(res.data);
+    } else {
+      setData(null);
+      setError(res.error || 'Unable to load products right now.');
     }
     setLoading(false);
   }, [q, sort]);
@@ -60,12 +65,12 @@ export default function ShopPage() {
               placeholder="Search pickles..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full rounded-full border border-aph-border bg-white px-4 py-2 outline-none focus:border-aph-gold sm:w-56"
+              className="w-full rounded-full border border-aph-border bg-aph-surface px-4 py-2 text-aph-ink outline-none placeholder:text-aph-muted/55 focus:border-aph-gold dark:bg-aph-card dark:text-aph-cream dark:placeholder:text-aph-muted sm:w-56"
             />
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="w-full rounded-full border border-aph-border bg-white px-4 py-2 outline-none sm:w-auto"
+              className="w-full rounded-full border border-aph-border bg-aph-surface px-4 py-2 text-aph-ink outline-none focus:border-aph-gold dark:bg-aph-card dark:text-aph-cream sm:w-auto"
             >
               <option value="">Sort</option>
               <option value="rating">Top rated</option>
@@ -85,18 +90,31 @@ export default function ShopPage() {
         ) : (
           <>
             <p className="text-aph-muted text-sm mb-6">{data?.total ?? 0} products</p>
-            <motion.div
-              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8"
-              initial="hidden"
-              animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
-            >
-              {(data?.items ?? []).map((p: PublicProduct, i: number) => (
-                <Link key={p.id} href={`/products/${p.slug}`}>
-                  <ProductCard product={p} index={i} />
-                </Link>
-              ))}
-            </motion.div>
+            {error ? (
+              <div className="rounded-2xl border border-aph-border bg-aph-surface p-6 text-aph-muted dark:bg-aph-card">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  onClick={load}
+                  className="mt-4 rounded-full bg-aph-gold px-5 py-2 text-sm font-medium text-aph-bg transition hover:bg-aph-gold-light"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <motion.div
+                className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8"
+                initial="hidden"
+                animate="visible"
+                variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
+              >
+                {(data?.items ?? []).map((p: PublicProduct, i: number) => (
+                  <Link key={p.id} href={`/products/${p.slug}`}>
+                    <ProductCard product={p} index={i} />
+                  </Link>
+                ))}
+              </motion.div>
+            )}
           </>
         )}
       </motion.div>

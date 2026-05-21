@@ -2,8 +2,20 @@
  * Browser: same-origin `/api` proxy (next.config rewrites → Express).
  * Server: direct API URL for SSR if needed later.
  */
-function getApiBase(): string {
+function isPublicReadPath(path: string): boolean {
+  return (
+    path.startsWith('/health') ||
+    path.startsWith('/v1/products') ||
+    path.startsWith('/v1/categories') ||
+    path.startsWith('/v1/content') ||
+    path.startsWith('/v1/reviews')
+  );
+}
+
+function getApiBase(path: string): string {
   if (typeof window !== 'undefined') {
+    const publicApiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (publicApiUrl && isPublicReadPath(path)) return publicApiUrl;
     return '/api';
   }
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -27,7 +39,7 @@ async function canReachApi(): Promise<boolean> {
   if (apiOfflineUntil > now) return false;
   if (apiProbe) return apiProbe;
 
-  apiProbe = fetch(`${getApiBase()}/health`, {
+  apiProbe = fetch(`${getApiBase('/health')}/health`, {
     credentials: 'include',
     cache: 'no-store',
   })
@@ -51,7 +63,8 @@ export async function api<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; error?: string }> {
-  const url = `${getApiBase()}${path.startsWith('/') ? path : `/${path}`}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${getApiBase(normalizedPath)}${normalizedPath}`;
 
   try {
     if (!path.startsWith('/health') && !(await canReachApi())) {

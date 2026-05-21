@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheGetVersion, cacheSet } from '../lib/redis';
 
 const router = Router();
 
-router.get('/testimonials', async (req, res, next) => {
+router.get('/testimonials', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const version = await cacheGetVersion('content:testimonials');
     const key = `content:testimonials:v${version}`;
@@ -23,7 +23,7 @@ router.get('/testimonials', async (req, res, next) => {
   }
 });
 
-router.get('/media', async (req, res, next) => {
+router.get('/media', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const section = z.string().optional().parse(req.query.section);
     const items = await prisma.mediaAsset.findMany({

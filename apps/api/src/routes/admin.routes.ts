@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { OrderStatus, type Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireAdmin } from '../middleware/auth';
@@ -13,7 +13,11 @@ import { jsonObjectSchema } from '../lib/json';
 const router = Router();
 router.use(authenticate, requireAdmin);
 
-router.get('/orders', async (req, res, next) => {
+function routeParam(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] : value ?? '';
+}
+
+router.get('/orders', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const status = z.nativeEnum(OrderStatus).optional().parse(req.query.status);
     const page = z.coerce.number().int().positive().default(1).parse(req.query.page);
@@ -24,17 +28,17 @@ router.get('/orders', async (req, res, next) => {
   }
 });
 
-router.patch('/orders/:id/status', async (req, res, next) => {
+router.patch('/orders/:id/status', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const status = z.nativeEnum(OrderStatus).parse(req.body.status);
-    const order = await orderService.updateStatus(req.params.id, status);
+    const order = await orderService.updateStatus(routeParam(req.params.id), status);
     res.json({ success: true, data: order });
   } catch (e) {
     next(e);
   }
 });
 
-router.get('/analytics', async (req, res, next) => {
+router.get('/analytics', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [legacy, dashboard] = await Promise.all([
       orderService.getAnalytics(),
@@ -46,7 +50,7 @@ router.get('/analytics', async (req, res, next) => {
   }
 });
 
-router.get('/dashboard', async (req, res, next) => {
+router.get('/dashboard', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const dashboard = await analyticsService.getDashboard();
     res.json({ success: true, data: dashboard });
@@ -55,7 +59,7 @@ router.get('/dashboard', async (req, res, next) => {
   }
 });
 
-router.get('/customers', async (req, res, next) => {
+router.get('/customers', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const customers = await prisma.user.findMany({
       where: { role: 'CUSTOMER', deletedAt: null },
@@ -69,7 +73,7 @@ router.get('/customers', async (req, res, next) => {
   }
 });
 
-router.get('/inventory', async (req, res, next) => {
+router.get('/inventory', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const inventory = await prisma.inventory.findMany({
       include: { product: { select: { name: true, slug: true } } },
@@ -80,11 +84,11 @@ router.get('/inventory', async (req, res, next) => {
   }
 });
 
-router.patch('/inventory/:id', async (req, res, next) => {
+router.patch('/inventory/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stock = z.number().int().min(0).parse(req.body.stock);
     const inv = await prisma.inventory.update({
-      where: { id: req.params.id },
+      where: { id: routeParam(req.params.id) },
       data: { stock },
     });
     res.json({ success: true, data: inv });
@@ -93,7 +97,7 @@ router.patch('/inventory/:id', async (req, res, next) => {
   }
 });
 
-router.get('/testimonials', async (req, res, next) => {
+router.get('/testimonials', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const items = await prisma.testimonial.findMany({ orderBy: { sortOrder: 'asc' } });
     res.json({ success: true, data: items });
@@ -102,7 +106,7 @@ router.get('/testimonials', async (req, res, next) => {
   }
 });
 
-router.post('/testimonials', async (req, res, next) => {
+router.post('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = z.object({
       name: z.string(),
@@ -127,7 +131,7 @@ router.post('/testimonials', async (req, res, next) => {
   }
 });
 
-router.get('/products', async (req, res, next) => {
+router.get('/products', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const products = await prisma.product.findMany({
       include: { inventory: true, category: true },
@@ -139,7 +143,7 @@ router.get('/products', async (req, res, next) => {
   }
 });
 
-router.post('/products', async (req, res, next) => {
+router.post('/products', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = z.object({
       slug: z.string(),
@@ -167,7 +171,7 @@ router.post('/products', async (req, res, next) => {
   }
 });
 
-router.patch('/products/:id', async (req, res, next) => {
+router.patch('/products/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = z
       .object({
@@ -185,7 +189,7 @@ router.patch('/products/:id', async (req, res, next) => {
       .parse(req.body);
 
     const product = await prisma.product.update({
-      where: { id: req.params.id },
+      where: { id: routeParam(req.params.id) },
       data: {
         name: body.name,
         description: body.description,
@@ -212,10 +216,10 @@ router.patch('/products/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/products/:id', async (req, res, next) => {
+router.delete('/products/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     await prisma.product.update({
-      where: { id: req.params.id },
+      where: { id: routeParam(req.params.id) },
       data: { deletedAt: new Date(), isActive: false },
     });
     await productService.invalidateCache();
@@ -225,7 +229,7 @@ router.delete('/products/:id', async (req, res, next) => {
   }
 });
 
-router.post('/media', async (req, res, next) => {
+router.post('/media', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = z
       .object({

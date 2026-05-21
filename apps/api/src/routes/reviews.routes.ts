@@ -1,21 +1,24 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import { reviewService } from '../services/review.service';
 
 const router = Router();
+function routeParam(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] : value ?? '';
+}
 
-router.get('/product/:productId', async (req, res, next) => {
+router.get('/product/:productId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = Number(req.query.page) || 1;
-    const data = await reviewService.listByProduct(req.params.productId, page);
+    const data = await reviewService.listByProduct(routeParam(req.params.productId), page);
     res.json({ success: true, data });
   } catch (e) {
     next(e);
   }
 });
 
-router.post('/product/:productId', authenticate, async (req, res, next) => {
+router.post('/product/:productId', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = z
       .object({
@@ -24,9 +27,7 @@ router.post('/product/:productId', authenticate, async (req, res, next) => {
         body: z.string().min(10).max(2000),
       })
       .parse(req.body);
-    const productId = Array.isArray(req.params.productId)
-      ? req.params.productId[0]
-      : req.params.productId;
+    const productId = routeParam(req.params.productId);
     const review = await reviewService.create(req.user!.userId, productId, body);
     res.json({ success: true, data: review });
   } catch (e) {

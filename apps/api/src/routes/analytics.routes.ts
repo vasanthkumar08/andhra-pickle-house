@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { optionalAuth } from '../middleware/auth';
 import { analyticsService } from '../services/analytics.service';
@@ -6,7 +6,7 @@ import { jsonObjectSchema } from '../lib/json';
 
 const router = Router();
 
-router.post('/track', optionalAuth, async (req, res, next) => {
+router.post('/track', optionalAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = z
       .object({

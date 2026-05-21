@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
@@ -17,7 +17,7 @@ const addressSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const addresses = await prisma.address.findMany({
       where: { userId: req.user!.userId },
@@ -29,7 +29,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = addressSchema.parse(req.body);
     if (body.isDefault) {

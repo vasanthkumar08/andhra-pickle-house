@@ -1,8 +1,12 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { productService, type CatalogQuery } from '../services/product.service';
 
 const router = Router();
+function routeParam(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] : value ?? '';
+}
+
 const catalogQuerySchema = z.object({
   q: z.string().optional(),
   category: z.string().optional(),
@@ -13,7 +17,7 @@ const catalogQuerySchema = z.object({
   limit: z.coerce.number().int().positive().optional(),
 });
 
-router.get('/', async (req, res, next) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const hasFilters = Object.keys(req.query).length > 0;
 
@@ -39,7 +43,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.get('/catalog/featured', async (req, res, next) => {
+router.get('/catalog/featured', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await productService.listCatalog({ featured: true, limit: 8 });
     res.json({ success: true, data: data.items });
@@ -48,18 +52,18 @@ router.get('/catalog/featured', async (req, res, next) => {
   }
 });
 
-router.get('/:slug/related', async (req, res, next) => {
+router.get('/:slug/related', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const related = await productService.getRelated(req.params.slug);
+    const related = await productService.getRelated(routeParam(req.params.slug));
     res.json({ success: true, data: related });
   } catch (e) {
     next(e);
   }
 });
 
-router.get('/:slug', async (req, res, next) => {
+router.get('/:slug', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const product = await productService.getBySlug(req.params.slug);
+    const product = await productService.getBySlug(routeParam(req.params.slug));
     if (!product) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: product });
   } catch (e) {

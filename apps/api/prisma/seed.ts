@@ -248,9 +248,20 @@ async function main() {
   }
 
   for (const [i, t] of testimonials.entries()) {
-    await prisma.testimonial.create({
-      data: { ...t, sortOrder: i, isActive: true },
+    const existing = await prisma.testimonial.findFirst({
+      where: { name: t.name, reviewEn: t.reviewEn },
     });
+
+    if (existing) {
+      await prisma.testimonial.update({
+        where: { id: existing.id },
+        data: { ...t, sortOrder: i, isActive: true },
+      });
+    } else {
+      await prisma.testimonial.create({
+        data: { ...t, sortOrder: i, isActive: true },
+      });
+    }
   }
 
   const adminPhone = process.env.ADMIN_PHONE || '919876543210';

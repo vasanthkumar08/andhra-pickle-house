@@ -3,7 +3,7 @@ services:
     name: andhra-pickle-house-api
     env: node
     plan: starter
-    buildCommand: npm ci --include=dev && npm run db:deploy -w @aph/api && npm run build:api
+    buildCommand: npm ci --include=dev && npm run db:deploy -w @aph/api && npm run db:seed -w @aph/api && npm run build:api
     startCommand: npm run start -w @aph/api
     healthCheckPath: /health
     envVars:

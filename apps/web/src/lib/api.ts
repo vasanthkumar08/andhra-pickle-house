@@ -44,6 +44,22 @@ async function ensureCsrfCookie(): Promise<string | null> {
   return readCookie('csrfToken');
 }
 
+async function refreshSession(): Promise<boolean> {
+  const csrfToken = await ensureCsrfCookie();
+  const res = await fetch('/api/v1/auth/refresh', {
+    method: 'POST',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+    },
+    body: '{}',
+  }).catch(() => null);
+
+  return Boolean(res?.ok);
+}
+
 async function canReachApi(): Promise<boolean> {
   if (typeof window === 'undefined') return true;
 
@@ -73,7 +89,8 @@ async function canReachApi(): Promise<boolean> {
 
 export async function api<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryOnUnauthorized = true
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${getApiBase(normalizedPath)}${normalizedPath}`;
@@ -98,6 +115,11 @@ export async function api<T>(
         ...options.headers,
       },
     });
+
+    if (res.status === 401 && retryOnUnauthorized && !normalizedPath.startsWith('/v1/auth/')) {
+      const refreshed = await refreshSession();
+      if (refreshed) return api<T>(normalizedPath, options, false);
+    }
 
     const text = await res.text();
     if (!text) {

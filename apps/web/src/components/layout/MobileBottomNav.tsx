@@ -15,7 +15,7 @@ const items = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const { user, openAuthModal } = useStore();
+  const { user, authHydrated, openAuthModal } = useStore();
 
   return (
     <motion.nav
@@ -36,6 +36,19 @@ export function MobileBottomNav() {
               {active && <motion.span layoutId="mobile-nav-active" className="absolute inset-0 -z-10 rounded-2xl bg-aph-gold/12" />}
             </>
           );
+
+          if ((item.label === 'Account' || item.label === 'Orders') && !authHydrated) {
+            return (
+              <button
+                key={item.label}
+                type="button"
+                disabled
+                className="relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-aph-muted/50"
+              >
+                {content}
+              </button>
+            );
+          }
 
           if ((item.label === 'Account' || item.label === 'Orders') && !user) {
             return (

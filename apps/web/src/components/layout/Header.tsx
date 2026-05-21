@@ -12,7 +12,7 @@ import { api } from '@/lib/api';
 export function Header() {
   const pathname = usePathname();
   const isHome = pathname === '/';
-  const { cart, setCartDrawerOpen, user, logoutLocal, openAuthModal } = useStore();
+  const { cart, setCartDrawerOpen, user, authHydrated, logoutLocal, openAuthModal } = useStore();
   const { toggle, theme } = useTheme();
   const [accountOpen, setAccountOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -77,7 +77,12 @@ export function Header() {
           >
             {theme === 'light' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
-          {user ? (
+          {!authHydrated ? (
+            <div
+              className="h-10 w-20 animate-pulse rounded-full border border-aph-border bg-aph-surface"
+              aria-label="Loading account"
+            />
+          ) : user ? (
             <div ref={accountRef} className="relative">
               <button
                 type="button"

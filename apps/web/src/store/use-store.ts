@@ -36,11 +36,13 @@ interface AppState {
   user: User | null;
   cart: Cart | null;
   products: PublicProduct[];
+  authHydrated: boolean;
   authModalOpen: boolean;
   cartDrawerOpen: boolean;
   pendingAdd: { productId: string; weightGrams: number; quantity: number } | null;
   setUser: (user: User | null) => void;
   setCart: (cart: Cart | null) => void;
+  setAuthHydrated: (hydrated: boolean) => void;
   logoutLocal: () => void;
   setProducts: (products: PublicProduct[]) => void;
   openAuthModal: (pending?: AppState['pendingAdd']) => void;
@@ -52,11 +54,13 @@ export const useStore = create<AppState>((set) => ({
   user: null,
   cart: null,
   products: [],
+  authHydrated: false,
   authModalOpen: false,
   cartDrawerOpen: false,
   pendingAdd: null,
   setUser: (user) => set({ user }),
   setCart: (cart) => set({ cart }),
+  setAuthHydrated: (authHydrated) => set({ authHydrated }),
   logoutLocal: () => set({ user: null, cart: null, cartDrawerOpen: false, authModalOpen: false, pendingAdd: null }),
   setProducts: (products) => set({ products }),
   openAuthModal: (pending) => set({ authModalOpen: true, pendingAdd: pending ?? null }),

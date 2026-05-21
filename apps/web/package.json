@@ -7,13 +7,14 @@
     "build:shared": "npm --prefix ../.. run build:shared",
     "prebuild": "npm run build:shared",
     "build": "next build",
+    "vercel-build": "cd ../.. && npm run build --workspace=@aph/shared && npm run build --workspace=@aph/web",
     "start": "next start",
     "lint": "eslint .",
     "pretypecheck": "npm run build:shared",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aph/shared": "file:../../packages/shared",
+    "@aph/shared": "*",
     "framer-motion": "^12.12.1",
     "lenis": "^1.3.4",
     "next": "^15.3.2",

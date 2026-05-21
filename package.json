@@ -28,6 +28,7 @@
     "typecheck": "npm run typecheck --workspaces",
     "build": "npm run build --workspaces",
     "db:generate": "npm run db:generate -w @aph/api",
+    "db:deploy": "npm run db:deploy -w @aph/api",
     "db:migrate": "npm run db:migrate -w @aph/api",
     "db:seed": "npm run db:seed -w @aph/api",
     "db:studio": "npm run db:studio -w @aph/api"

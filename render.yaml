@@ -58,6 +58,6 @@ services:
       - key: CLOUDINARY_UPLOAD_FOLDER
         value: andhra-pickle-house
       - key: CLOUDINARY_REQUIRED
-        value: true
+        value: false
       - key: WORKER_CONCURRENCY
         value: 5

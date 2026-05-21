@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+const booleanEnv = z.preprocess((value) => {
+  if (typeof value !== 'string') return value;
+
+  if (value.toLowerCase() === 'true') return true;
+  if (value.toLowerCase() === 'false') return false;
+
+  return value;
+}, z.boolean());
+
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -43,12 +52,12 @@ export const envSchema = z
     CLOUDINARY_API_KEY: z.string().optional(),
     CLOUDINARY_API_SECRET: z.string().optional(),
     CLOUDINARY_UPLOAD_FOLDER: z.string().default('andhra-pickle-house'),
-    CLOUDINARY_REQUIRED: z.coerce.boolean().default(false),
-    QUEUE_WORKER_ENABLED: z.coerce.boolean().default(false),
+    CLOUDINARY_REQUIRED: booleanEnv.default(false),
+    QUEUE_WORKER_ENABLED: booleanEnv.default(false),
     WORKER_CONCURRENCY: z.coerce.number().int().positive().max(50).default(5),
   })
   .superRefine((value, ctx) => {
-    const cloudinaryRequired = value.NODE_ENV === 'production' || value.CLOUDINARY_REQUIRED;
+    const cloudinaryRequired = value.CLOUDINARY_REQUIRED;
     const hasCloudinary =
       Boolean(value.CLOUDINARY_CLOUD_NAME) &&
       Boolean(value.CLOUDINARY_API_KEY) &&
@@ -60,7 +69,7 @@ export const envSchema = z
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: [key],
-            message: 'Cloudinary credentials are required in production or when CLOUDINARY_REQUIRED=true.',
+            message: 'Cloudinary credentials are required when CLOUDINARY_REQUIRED=true.',
           });
         }
       }

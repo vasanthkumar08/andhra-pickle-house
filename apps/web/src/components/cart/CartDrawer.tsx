@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useStore } from '@/store/use-store';
@@ -10,6 +10,10 @@ import { MagneticButton } from '../ui/MagneticButton';
 
 function CartItemImage({ slug, imageUrl, name }: { slug?: string; imageUrl?: string; name?: string }) {
   const [src, setSrc] = useState(() => productImageUrl(slug, imageUrl));
+
+  useEffect(() => {
+    setSrc(productImageUrl(slug, imageUrl));
+  }, [slug, imageUrl]);
 
   return (
     <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-aph-border bg-aph-surface sm:h-24 sm:w-24">
@@ -89,7 +93,7 @@ export function CartDrawer() {
             transition={{ type: 'spring', damping: 25 }}
           >
             <div className="flex items-center justify-between border-b border-aph-gold/10 p-4 sm:p-6">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl">
+              <h2 className="min-w-0 font-[family-name:var(--font-display)] text-2xl">
                 {checkoutStep ? 'Checkout' : 'Your Cart'}
               </h2>
               <button
@@ -158,8 +162,8 @@ export function CartDrawer() {
                     <div className="min-w-0 flex-1">
                       <h4 className="truncate font-medium">{item.name || 'Andhra Pickle'}</h4>
                       <p className="text-aph-muted text-sm">{item.weightLabel}</p>
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <motion.div className="flex items-center gap-2 rounded-full border border-aph-border px-2 py-1">
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <motion.div className="flex shrink-0 items-center gap-2 rounded-full border border-aph-border px-2 py-1">
                           <button type="button" onClick={() => updateQty(item.id, item.quantity - 1)} className="grid size-7 place-items-center rounded-full text-aph-gold">−</button>
                           <span className="min-w-5 text-center text-sm">{item.quantity}</span>
                           <button type="button" onClick={() => updateQty(item.id, item.quantity + 1)} className="grid size-7 place-items-center rounded-full text-aph-gold">+</button>

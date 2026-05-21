@@ -16,7 +16,7 @@ interface OrderRow {
 }
 
 export default function AccountPage() {
-  const { user, openAuthModal, setUser, setCart } = useStore();
+  const { user, openAuthModal, logoutLocal } = useStore();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -30,10 +30,12 @@ export default function AccountPage() {
   const logout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
-    setUser(null);
-    setCart(null);
-    await api('/v1/auth/logout', { method: 'POST' });
-    setLoggingOut(false);
+    logoutLocal();
+    try {
+      await api('/v1/auth/logout', { method: 'POST' });
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   if (!user) {
@@ -49,8 +51,8 @@ export default function AccountPage() {
   return (
     <main className="min-h-screen bg-aph-bg px-4 pb-28 pt-24 sm:px-6">
       <motion.div className="mx-auto max-w-2xl" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-aph-border px-3 py-1 text-sm text-aph-muted">
               <UserCircle size={16} /> Signed in
             </p>
@@ -60,7 +62,7 @@ export default function AccountPage() {
             type="button"
             onClick={logout}
             disabled={loggingOut}
-            className="inline-flex items-center gap-2 rounded-full border border-aph-border px-4 py-2 text-sm text-aph-terracotta transition hover:bg-aph-terracotta/10 disabled:opacity-60"
+            className="inline-flex w-fit items-center gap-2 rounded-full border border-aph-border px-4 py-2 text-sm text-aph-terracotta transition hover:bg-aph-terracotta/10 disabled:opacity-60"
           >
             <LogOut size={16} /> {loggingOut ? 'Signing out...' : 'Logout'}
           </button>
@@ -73,12 +75,12 @@ export default function AccountPage() {
           ) : (
             <ul className="space-y-3">
               {orders.map((o) => (
-                <li key={o.id} className="flex justify-between items-center border-b border-aph-border pb-3 last:border-0">
-                  <div>
+                <li key={o.id} className="flex min-w-0 items-center justify-between gap-3 border-b border-aph-border pb-3 last:border-0">
+                  <div className="min-w-0">
                     <p className="font-medium text-aph-gold">{o.orderRef}</p>
-                    <p className="text-xs text-aph-muted">{new Date(o.createdAt).toLocaleString('en-IN')}</p>
+                    <p className="truncate text-xs text-aph-muted">{new Date(o.createdAt).toLocaleString('en-IN')}</p>
                   </div>
-                  <div className="text-right text-sm">
+                  <div className="shrink-0 text-right text-sm">
                     <p>{o.status}</p>
                     <p>₹{o.subtotalPaise / 100}</p>
                   </div>

@@ -12,7 +12,7 @@ import { api } from '@/lib/api';
 export function Header() {
   const pathname = usePathname();
   const isHome = pathname === '/';
-  const { cart, setCart, setCartDrawerOpen, user, setUser, openAuthModal } = useStore();
+  const { cart, setCartDrawerOpen, user, logoutLocal, openAuthModal } = useStore();
   const { toggle, theme } = useTheme();
   const [accountOpen, setAccountOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -38,22 +38,23 @@ export function Header() {
     if (loggingOut) return;
     setLoggingOut(true);
     setAccountOpen(false);
-    setUser(null);
-    setCart(null);
-    setCartDrawerOpen(false);
-    await api('/v1/auth/logout', { method: 'POST' });
-    setLoggingOut(false);
+    logoutLocal();
+    try {
+      await api('/v1/auth/logout', { method: 'POST' });
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
     <motion.header
-      className="fixed left-0 right-0 top-0 z-50 border-b border-aph-border bg-aph-bg/85 px-4 py-3 backdrop-blur-md sm:px-6 sm:py-4"
+      className="fixed left-0 right-0 top-0 z-50 border-b border-aph-border bg-aph-bg/85 px-3 py-3 backdrop-blur-md sm:px-6 sm:py-4"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3">
-        <Link href="/" className="min-w-0 font-[family-name:var(--font-display)] text-xl leading-none text-gradient-gold sm:text-2xl">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 sm:gap-3">
+        <Link href="/" className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-lg leading-none text-gradient-gold sm:text-2xl">
           <span className="block truncate">Andhra Pickle House</span>
         </Link>
         <nav className="hidden gap-6 text-sm text-aph-muted md:flex">
@@ -67,11 +68,11 @@ export function Header() {
           <Link href="/account" className="transition-colors hover:text-aph-gold">Account</Link>
           <Link href="/wishlist" className="transition-colors hover:text-aph-gold">Wishlist</Link>
         </nav>
-        <motion.div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <motion.div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <button
             type="button"
             onClick={toggle}
-            className="grid size-10 place-items-center rounded-full border border-aph-border text-aph-muted transition hover:text-aph-gold"
+            className="grid size-9 place-items-center rounded-full border border-aph-border text-aph-muted transition hover:text-aph-gold sm:size-10"
             aria-label="Toggle theme"
           >
             {theme === 'light' ? <Sun size={17} /> : <Moon size={17} />}
@@ -119,14 +120,14 @@ export function Header() {
               </AnimatePresence>
             </div>
           ) : (
-            <button type="button" onClick={() => openAuthModal()} className="rounded-full bg-aph-gold px-4 py-2 text-sm font-medium text-aph-bg transition hover:bg-aph-gold-light">
+            <button type="button" onClick={() => openAuthModal()} className="rounded-full bg-aph-gold px-3 py-2 text-sm font-medium text-aph-bg transition hover:bg-aph-gold-light sm:px-4">
               Login
             </button>
           )}
           <button
             type="button"
             onClick={() => setCartDrawerOpen(true)}
-            className="relative grid size-10 place-items-center rounded-full border border-aph-gold/30 transition hover:bg-aph-gold/10"
+            className="relative grid size-9 place-items-center rounded-full border border-aph-gold/30 transition hover:bg-aph-gold/10 sm:size-10"
             data-cursor="hover"
             aria-label="Cart"
           >

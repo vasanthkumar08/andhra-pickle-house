@@ -42,8 +42,10 @@ const PRODUCT_IMAGE_FALLBACKS: Record<string, string> = {
 };
 
 export function productImageUrl(slug?: string | null, value?: string | null) {
+  const image = safeImageUrl(value);
+  if (image !== FALLBACK_PRODUCT_IMAGE) return image;
   if (slug && PRODUCT_IMAGE_FALLBACKS[slug]) return PRODUCT_IMAGE_FALLBACKS[slug];
-  return safeImageUrl(value);
+  return FALLBACK_PRODUCT_IMAGE;
 }
 
 export function safeImageUrl(value?: string | null) {

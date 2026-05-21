@@ -78,9 +78,9 @@ export default function ProductDetailPage() {
   const imageUrl = productImageUrl(product.slug, product.imageUrl);
 
   return (
-    <main className="min-h-screen pt-24 pb-16 px-6 bg-aph-bg">
+    <main className="min-h-screen bg-aph-bg px-4 pb-28 pt-24 sm:px-6 sm:pb-16">
       <motion.div
-        className="mx-auto max-w-6xl grid md:grid-cols-2 gap-12"
+        className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2 md:gap-12"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
@@ -93,12 +93,12 @@ export default function ProductDetailPage() {
           ) : null}
         </motion.div>
 
-        <div>
+        <div className="min-w-0">
           {product.nameTe && (
             <p className="font-[family-name:var(--font-telugu)] text-aph-gold">{product.nameTe}</p>
           )}
-          <h1 className="font-[family-name:var(--font-display)] text-4xl text-aph-ink mt-1">{product.name}</h1>
-          <div className="flex items-center gap-2 mt-2 text-sm text-aph-muted">
+          <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl leading-tight text-aph-ink sm:text-4xl">{product.name}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-aph-muted">
             <span>★ {product.rating?.toFixed(1)}</span>
             <span>({product.reviewsCount} reviews)</span>
           </div>
@@ -124,8 +124,8 @@ export default function ProductDetailPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-4 mt-6">
-            <div className="flex items-center border border-aph-border rounded-full px-2">
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <div className="flex shrink-0 items-center rounded-full border border-aph-border px-2">
               <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-9 h-9">−</button>
               <span className="w-8 text-center">{qty}</span>
               <button type="button" onClick={() => setQty((q) => q + 1)} className="w-9 h-9">+</button>
@@ -133,11 +133,11 @@ export default function ProductDetailPage() {
             <span className="text-3xl font-medium text-aph-gold">₹{price}</span>
           </div>
 
-          <div className="flex gap-3 mt-8">
-            <MagneticButton onClick={addToCart} className="flex-1">
+          <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_auto]">
+            <MagneticButton onClick={addToCart} className="w-full">
               Add to Cart
             </MagneticButton>
-            <MagneticButton variant="outline" onClick={toggleWishlist}>
+            <MagneticButton variant="outline" onClick={toggleWishlist} className="w-full sm:w-auto">
               ♥ Wishlist
             </MagneticButton>
           </div>
@@ -151,7 +151,7 @@ export default function ProductDetailPage() {
       {related.length > 0 && (
         <section className="mx-auto max-w-6xl mt-20">
           <h2 className="font-[family-name:var(--font-display)] text-2xl mb-8">You may also love</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {related.map((p, i) => (
               <Link key={p.id} href={`/products/${p.slug}`}>
                 <ProductCard product={p} index={i} />

@@ -76,7 +76,9 @@ export const authController = {
 
   logout: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await authService.logout(req.user!.userId, req.cookies?.refreshToken);
+      if (req.user) {
+        await authService.logout(req.user.userId, req.cookies?.refreshToken);
+      }
       res.clearCookie('accessToken', authCookieOptions());
       res.clearCookie('refreshToken', authCookieOptions());
       res.json({ success: true, requestId: req.requestId });

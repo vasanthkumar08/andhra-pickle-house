@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aph/shared": "*",
+    "@aph/shared": "file:../../packages/shared",
     "framer-motion": "^12.12.1",
     "lenis": "^1.3.4",
     "next": "^15.3.2",

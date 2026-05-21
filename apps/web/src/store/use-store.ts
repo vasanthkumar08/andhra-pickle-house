@@ -41,6 +41,7 @@ interface AppState {
   pendingAdd: { productId: string; weightGrams: number; quantity: number } | null;
   setUser: (user: User | null) => void;
   setCart: (cart: Cart | null) => void;
+  logoutLocal: () => void;
   setProducts: (products: PublicProduct[]) => void;
   openAuthModal: (pending?: AppState['pendingAdd']) => void;
   closeAuthModal: () => void;
@@ -56,6 +57,7 @@ export const useStore = create<AppState>((set) => ({
   pendingAdd: null,
   setUser: (user) => set({ user }),
   setCart: (cart) => set({ cart }),
+  logoutLocal: () => set({ user: null, cart: null, cartDrawerOpen: false, authModalOpen: false, pendingAdd: null }),
   setProducts: (products) => set({ products }),
   openAuthModal: (pending) => set({ authModalOpen: true, pendingAdd: pending ?? null }),
   closeAuthModal: () => set({ authModalOpen: false, pendingAdd: null }),

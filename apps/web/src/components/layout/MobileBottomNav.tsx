@@ -43,7 +43,7 @@ export function MobileBottomNav() {
                 key={item.label}
                 type="button"
                 onClick={() => openAuthModal()}
-                className="relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-aph-muted transition hover:text-aph-gold"
+                className="relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 text-aph-muted transition hover:text-aph-gold"
               >
                 {content}
               </button>
@@ -54,7 +54,7 @@ export function MobileBottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              className={`relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 transition ${
+              className={`relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2 transition ${
                 active ? 'text-aph-gold' : 'text-aph-muted hover:text-aph-gold'
               }`}
             >

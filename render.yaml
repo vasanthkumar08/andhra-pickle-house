@@ -12,7 +12,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: AUTH_PROVIDER
-        value: firebase
+        value: legacy
+      - key: OTP_PROVIDER
+        value: twilio
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
@@ -27,9 +29,11 @@ services:
         sync: false
       - key: API_URL
         sync: false
-      - key: FIREBASE_PROJECT_ID
+      - key: TWILIO_ACCOUNT_SID
         sync: false
-      - key: FIREBASE_CLIENT_EMAIL
+      - key: TWILIO_AUTH_TOKEN
         sync: false
-      - key: FIREBASE_PRIVATE_KEY
+      - key: TWILIO_MESSAGING_SERVICE_SID
+        sync: false
+      - key: TWILIO_FROM_PHONE
         sync: false

@@ -66,6 +66,28 @@ With `OTP_PROVIDER=console`, OTP codes are logged to the API console as
 `Mock OTP sent`. This provider is development/test only and is blocked in
 production.
 
+### OTP in production
+
+Production OTP is backend-owned. The frontend calls `/v1/auth/otp/request`,
+the API hashes and stores the OTP, Twilio sends the SMS, and
+`/v1/auth/otp/verify` creates the HttpOnly cookie session.
+
+Set these on the API host:
+
+```bash
+AUTH_PROVIDER=legacy
+OTP_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_MESSAGING_SERVICE_SID=... # preferred
+# or TWILIO_FROM_PHONE=+1...
+```
+
+Twilio requires either `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_PHONE`
+in addition to the account SID and auth token. On Vercel, set
+`NEXT_PUBLIC_API_URL` to the deployed API URL so the web proxy does not fall
+back to localhost.
+
 ## Hero Videos
 
 Your Hailuo clips are integrated at:

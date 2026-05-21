@@ -38,7 +38,16 @@ function getFirebaseErrorMessage(error: unknown): string {
         return 'Invalid or expired OTP. Please try again.';
       case 'auth/captcha-check-failed':
       case 'auth/missing-app-credential':
+      case 'auth/invalid-app-credential':
         return 'reCAPTCHA verification failed. Please refresh and try again.';
+      case 'auth/operation-not-allowed':
+        return 'Phone login is not enabled in Firebase Authentication.';
+      case 'auth/app-not-authorized':
+        return 'This website is not authorized for Firebase phone login.';
+      case 'auth/quota-exceeded':
+        return 'SMS quota exceeded for this Firebase project. Please try again later.';
+      case 'auth/billing-not-enabled':
+        return 'Firebase billing must be enabled before sending phone OTPs.';
       default:
         return 'Unable to complete phone verification right now.';
     }
@@ -158,6 +167,9 @@ export function AuthModal() {
       setCooldown(RESEND_SECONDS);
       window.setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } catch (sendError) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Firebase phone OTP failed', sendError);
+      }
       clearRecaptchaVerifier();
       setError(getFirebaseErrorMessage(sendError));
     } finally {
@@ -245,7 +257,7 @@ export function AuthModal() {
             transition={{ type: 'spring', damping: 22, stiffness: 220 }}
           >
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-aph-gold via-aph-terracotta to-aph-mango" />
-            <div id={RECAPTCHA_CONTAINER_ID} aria-hidden="true" />
+            <div id={RECAPTCHA_CONTAINER_ID} />
 
             <div className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-aph-gold">Secure Phone Login</p>

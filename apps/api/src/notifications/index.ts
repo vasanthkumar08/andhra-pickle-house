@@ -13,10 +13,6 @@ export function getNotificationProvider(): NotificationProvider {
     return provider;
   }
 
-  if (env.OTP_PROVIDER === 'msg91') {
-    throw new Error('MSG91 notification provider is not implemented.');
-  }
-
   provider = new FallbackMockProvider();
   return provider;
 }

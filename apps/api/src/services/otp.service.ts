@@ -85,17 +85,23 @@ export class OtpService {
     }
 
     const valid = await bcrypt.compare(code, record.codeHash);
-    await prisma.otpVerification.update({
-      where: { id: record.id },
+    const attempt = await prisma.otpVerification.updateMany({
+      where: {
+        id: record.id,
+        verifiedAt: null,
+        attempts: { lt: record.maxAttempts },
+      },
       data: { attempts: { increment: 1 } },
     });
 
+    if (attempt.count !== 1) throw new RateLimitError('Maximum OTP attempts exceeded');
     if (!valid) throw new ValidationError('Invalid OTP');
 
-    await prisma.otpVerification.update({
-      where: { id: record.id },
+    const verified = await prisma.otpVerification.updateMany({
+      where: { id: record.id, verifiedAt: null },
       data: { verifiedAt: new Date() },
     });
+    if (verified.count !== 1) throw new ValidationError('OTP already used');
 
     return normalized;
   }

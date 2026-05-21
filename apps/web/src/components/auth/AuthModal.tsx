@@ -1,37 +1,25 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ClipboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  type ConfirmationResult,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from 'firebase/auth';
-import {
-  FirebasePublicConfigError,
-  getFirebaseAuth,
-  warnIfFirebaseDomainMayBeUnauthorized,
-} from '@/lib/firebase';
 import { useStore } from '@/store/use-store';
 import { api } from '@/lib/api';
 import { MagneticButton } from '../ui/MagneticButton';
 
 type AuthStep = 'phone' | 'otp' | 'success';
 type NormalizedPhone = { ok: true; value: string } | { ok: false; error: string };
-type FirebaseAuthErrorLike = Error & { code?: string; customData?: unknown };
 
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 45;
 const EMPTY_OTP = Array.from({ length: OTP_LENGTH }, () => '');
-const RECAPTCHA_CONTAINER_ID = 'recaptcha-container';
 const AUTH_ERROR_ID = 'auth-error';
 
 function normalizeDigits(value: string): string {
   return value.replace(/\D/g, '');
 }
 
-function normalizePhoneForFirebase(rawPhone: string, countryCode: string): NormalizedPhone {
+function normalizePhoneForBackend(rawPhone: string, countryCode: string): NormalizedPhone {
   const digits = normalizeDigits(rawPhone);
 
   if (countryCode === '+91') {
@@ -52,92 +40,28 @@ function normalizePhoneForFirebase(rawPhone: string, countryCode: string): Norma
   return { ok: true, value: `${dialCode}${digits}` };
 }
 
-function getFirebaseErrorCode(error: unknown): string | undefined {
-  return error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : undefined;
-}
-
-function getFirebaseErrorMessage(error: unknown): string {
-  if (error instanceof FirebasePublicConfigError) {
-    return 'Firebase login is not configured correctly. Check the public Firebase env vars.';
-  }
-
-  if (!(error instanceof Error)) return 'Something went wrong. Please try again.';
-
-  const code = getFirebaseErrorCode(error);
-  if (code) {
-    switch (code) {
-      case 'auth/invalid-phone-number':
-        return 'Enter a valid mobile number.';
-      case 'auth/too-many-requests':
-        return 'Too many attempts. Please wait before trying again.';
-      case 'auth/invalid-verification-code':
-      case 'auth/code-expired':
-        return 'Invalid or expired OTP. Please try again.';
-      case 'auth/captcha-check-failed':
-      case 'auth/missing-app-credential':
-      case 'auth/invalid-app-credential':
-        return 'reCAPTCHA verification failed. Please refresh and try again.';
-      case 'auth/operation-not-allowed':
-        return 'Phone login is not enabled in Firebase Authentication.';
-      case 'auth/app-not-authorized':
-        return 'This website is not authorized for Firebase phone login.';
-      case 'auth/quota-exceeded':
-        return 'SMS quota exceeded for this Firebase project. Please try again later.';
-      case 'auth/billing-not-enabled':
-        return 'Firebase billing must be enabled before sending phone OTPs.';
-      default:
-        return 'Unable to complete phone verification right now.';
-    }
-  }
-
-  return error.message || 'Something went wrong. Please try again.';
-}
-
-function logFirebaseOtpError(error: unknown): void {
-  if (process.env.NODE_ENV === 'production') return;
-
-  const firebaseError = error as Partial<FirebaseAuthErrorLike>;
-  console.error('Firebase phone OTP failed', {
-    code: getFirebaseErrorCode(error),
-    message: error instanceof Error ? error.message : String(error),
-    customData: firebaseError.customData,
-    fullError: error,
-  });
-}
-
 export function AuthModal() {
   const { authModalOpen, closeAuthModal, pendingAdd, setUser, setCart } = useStore();
   const [step, setStep] = useState<AuthStep>('phone');
   const [countryCode, setCountryCode] = useState('+91');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState<string[]>(EMPTY_OTP);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const phoneInputRef = useRef<HTMLInputElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const sendInFlightRef = useRef(false);
   const verifyInFlightRef = useRef(false);
 
-  const normalizedPhone = useMemo(() => normalizePhoneForFirebase(phone, countryCode), [countryCode, phone]);
+  const normalizedPhone = useMemo(() => normalizePhoneForBackend(phone, countryCode), [countryCode, phone]);
   const e164Phone = normalizedPhone.ok ? normalizedPhone.value : '';
 
   const phoneReady = normalizedPhone.ok;
   const otpCode = otp.join('');
   const otpReady = otpCode.length === OTP_LENGTH;
   const busy = loading || sendInFlightRef.current || verifyInFlightRef.current;
-
-  const clearRecaptchaVerifier = useCallback(() => {
-    try {
-      recaptchaVerifierRef.current?.clear();
-    } finally {
-      document.getElementById(RECAPTCHA_CONTAINER_ID)?.replaceChildren();
-    }
-    recaptchaVerifierRef.current = null;
-  }, []);
 
   useEffect(() => {
     if (!authModalOpen) {
@@ -146,17 +70,13 @@ export function AuthModal() {
       setOtp([...EMPTY_OTP]);
       setError('');
       setCooldown(0);
-      setConfirmationResult(null);
       sendInFlightRef.current = false;
       verifyInFlightRef.current = false;
-      clearRecaptchaVerifier();
     }
-  }, [authModalOpen, clearRecaptchaVerifier]);
+  }, [authModalOpen]);
 
   useEffect(() => {
     if (!authModalOpen) return;
-
-    warnIfFirebaseDomainMayBeUnauthorized();
 
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     window.setTimeout(() => phoneInputRef.current?.focus(), 100);
@@ -197,38 +117,17 @@ export function AuthModal() {
   }, [authModalOpen, closeAuthModal, loading]);
 
   useEffect(() => {
-    return () => {
-      clearRecaptchaVerifier();
-    };
-  }, [clearRecaptchaVerifier]);
-
-  useEffect(() => {
     if (cooldown <= 0) return;
     const timer = window.setTimeout(() => setCooldown((value) => value - 1), 1000);
     return () => window.clearTimeout(timer);
   }, [cooldown]);
 
-  const getRecaptchaVerifier = () => {
-    if (recaptchaVerifierRef.current) return recaptchaVerifierRef.current;
-    const container = document.getElementById(RECAPTCHA_CONTAINER_ID);
-    if (!container) {
-      throw new Error('reCAPTCHA container is not ready.');
-    }
-
-    container.replaceChildren();
-    const auth = getFirebaseAuth();
-    recaptchaVerifierRef.current = new RecaptchaVerifier(auth, RECAPTCHA_CONTAINER_ID, {
-      size: 'invisible',
-    });
-    return recaptchaVerifierRef.current;
-  };
-
-  const handleBackendSession = async (firebaseToken: string) => {
+  const handleVerifiedSession = async (verifiedPhone: string, code: string) => {
     const res = await api<{ user: { id: string; phone: string; name: string | null; role: string } }>(
-      '/v1/auth/firebase-login',
+      '/v1/auth/otp/verify',
       {
         method: 'POST',
-        body: JSON.stringify({ firebaseToken }),
+        body: JSON.stringify({ phone: verifiedPhone, code }),
       }
     );
 
@@ -262,17 +161,21 @@ export function AuthModal() {
     setError('');
 
     try {
-      const verifier = getRecaptchaVerifier();
-      const result = await signInWithPhoneNumber(getFirebaseAuth(), normalizedPhone.value, verifier);
-      setConfirmationResult(result);
+      const res = await api<{ expiresIn: number }>('/v1/auth/otp/request', {
+        method: 'POST',
+        body: JSON.stringify({ phone: normalizedPhone.value }),
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || 'Unable to send OTP right now.');
+      }
+
       setStep('otp');
       setOtp([...EMPTY_OTP]);
       setCooldown(RESEND_SECONDS);
       window.setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } catch (sendError) {
-      logFirebaseOtpError(sendError);
-      clearRecaptchaVerifier();
-      setError(getFirebaseErrorMessage(sendError));
+      setError(sendError instanceof Error ? sendError.message : 'Unable to send OTP right now.');
     } finally {
       sendInFlightRef.current = false;
       setLoading(false);
@@ -280,21 +183,18 @@ export function AuthModal() {
   };
 
   const verifyOtp = async () => {
-    if (verifyInFlightRef.current || !confirmationResult || !otpReady || loading) return;
+    if (verifyInFlightRef.current || !normalizedPhone.ok || !otpReady || loading) return;
 
     verifyInFlightRef.current = true;
     setLoading(true);
     setError('');
 
     try {
-      const credential = await confirmationResult.confirm(otpCode);
-      const firebaseToken = await credential.user.getIdToken();
-      await handleBackendSession(firebaseToken);
+      await handleVerifiedSession(normalizedPhone.value, otpCode);
     } catch (verifyError) {
-      logFirebaseOtpError(verifyError);
       setOtp([...EMPTY_OTP]);
       inputRefs.current[0]?.focus();
-      setError(getFirebaseErrorMessage(verifyError));
+      setError(verifyError instanceof Error ? verifyError.message : 'Unable to verify OTP right now.');
     } finally {
       verifyInFlightRef.current = false;
       setLoading(false);
@@ -363,7 +263,6 @@ export function AuthModal() {
             transition={{ type: 'spring', damping: 22, stiffness: 220 }}
           >
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-aph-gold via-aph-terracotta to-aph-mango" />
-            <div id={RECAPTCHA_CONTAINER_ID} />
 
             <div className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-aph-gold">Secure Phone Login</p>

@@ -15,7 +15,8 @@ export class FallbackMockProvider implements NotificationProvider {
 
   async sendOTP(input: SendOtpInput): Promise<void> {
     this.assertDevOnly();
-    logger.info({ phone: input.phone, codeLength: input.code.length }, 'Mock OTP generated');
+    // Development/test only: the mock provider prints OTPs so local login can be completed without paid SMS.
+    logger.info({ phone: input.phone, code: input.code }, 'Mock OTP sent');
   }
 
   async sendOrderConfirmation(input: SendOrderConfirmationInput): Promise<void> {

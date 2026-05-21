@@ -62,7 +62,9 @@ messages. Health checks are available at `/health`, `/health/db`,
 
 ### OTP in development
 
-OTP codes are logged to the API console (`OTP (dev mode)`).
+With `OTP_PROVIDER=console`, OTP codes are logged to the API console as
+`Mock OTP sent`. This provider is development/test only and is blocked in
+production.
 
 ## Hero Videos
 
@@ -122,7 +124,7 @@ Configure Cloudflare:
 - [x] Zod validation on all inputs
 - [x] Immutable order snapshots + audit logs
 - [x] Admin role guard
-- [ ] Add Twilio/MSG91 for production OTP
+- [ ] Add Twilio credentials for production OTP
 - [ ] Enable CSP in production Helmet config
 - [ ] TLS certificates on Nginx
 

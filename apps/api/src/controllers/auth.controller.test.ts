@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { UnauthorizedError, ValidationError } from '../lib/errors';
+import { ZodError } from 'zod';
 
 vi.hoisted(() => {
   process.env.NODE_ENV = 'test';
-  process.env.AUTH_PROVIDER = 'firebase';
+  process.env.AUTH_PROVIDER = 'legacy';
   process.env.DATABASE_URL = 'postgresql://user:password@localhost:5432/test';
   process.env.REDIS_URL = 'redis://localhost:6379';
   process.env.JWT_ACCESS_SECRET = 'a'.repeat(40);
@@ -13,26 +13,22 @@ vi.hoisted(() => {
   process.env.CORS_ORIGINS = 'http://localhost:3000';
   process.env.WHATSAPP_BUSINESS_NUMBER = '919876543210';
   process.env.CLOUDINARY_REQUIRED = 'false';
-  process.env.FIREBASE_PROJECT_ID = 'andhra-pickle-house';
-  process.env.FIREBASE_CLIENT_EMAIL = 'firebase-admin@example.iam.gserviceaccount.com';
-  process.env.FIREBASE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\ntest\\n-----END PRIVATE KEY-----\\n';
 });
 
 const authMocks = vi.hoisted(() => ({
-  firebaseLogin: vi.fn(),
   requestOtp: vi.fn(),
+  verifyOtpAndLogin: vi.fn(),
 }));
 
 vi.mock('../services/auth.service', () => ({
   authService: {
-    firebaseLogin: authMocks.firebaseLogin,
     requestOtp: authMocks.requestOtp,
+    verifyOtpAndLogin: authMocks.verifyOtpAndLogin,
   },
 }));
 
 vi.mock('../config/env', () => ({
   env: {
-    AUTH_PROVIDER: 'firebase',
     NODE_ENV: 'test',
   },
 }));
@@ -73,14 +69,32 @@ function createRequest(body: unknown): Request {
   } as unknown as Request;
 }
 
-describe('authController.firebaseLogin', () => {
+describe('authController backend OTP login', () => {
   beforeEach(() => {
-    authMocks.firebaseLogin.mockReset();
     authMocks.requestOtp.mockReset();
+    authMocks.verifyOtpAndLogin.mockReset();
   });
 
-  it('sets backend session cookies after Firebase phone verification', async () => {
-    authMocks.firebaseLogin.mockResolvedValue({
+  it('requests an OTP through the backend auth service', async () => {
+    authMocks.requestOtp.mockResolvedValue({ expiresIn: 300 });
+
+    const req = createRequest({ phone: '+919876543210' });
+    const res = createResponse();
+    const next: NextFunction = vi.fn();
+
+    await authController.requestOtp(req, res as unknown as Response, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(authMocks.requestOtp).toHaveBeenCalledWith('+919876543210', '127.0.0.1');
+    expect(res.body).toMatchObject({
+      success: true,
+      data: { expiresIn: 300 },
+      requestId: 'req-test',
+    });
+  });
+
+  it('sets backend session cookies after OTP verification', async () => {
+    authMocks.verifyOtpAndLogin.mockResolvedValue({
       tokens: {
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
@@ -93,14 +107,21 @@ describe('authController.firebaseLogin', () => {
       },
     });
 
-    const req = createRequest({ firebaseToken: 'x'.repeat(128) });
+    const req = createRequest({ phone: '+919876543210', code: '123456' });
     const res = createResponse();
     const next: NextFunction = vi.fn();
 
-    await authController.firebaseLogin(req, res as unknown as Response, next);
+    await authController.verifyOtp(req, res as unknown as Response, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(authMocks.firebaseLogin).toHaveBeenCalledWith('x'.repeat(128), 'test-device', '127.0.0.1', 'vitest');
+    expect(authMocks.verifyOtpAndLogin).toHaveBeenCalledWith(
+      '+919876543210',
+      '123456',
+      undefined,
+      'test-device',
+      '127.0.0.1',
+      'vitest'
+    );
     expect(res.cookies.accessToken.value).toBe('access-token');
     expect(res.cookies.refreshToken.value).toBe('refresh-token');
     expect(res.body).toMatchObject({
@@ -112,27 +133,14 @@ describe('authController.firebaseLogin', () => {
     });
   });
 
-  it('passes invalid Firebase tokens to centralized error handling', async () => {
-    authMocks.firebaseLogin.mockRejectedValue(new UnauthorizedError('Invalid or expired Firebase token'));
-
-    const req = createRequest({ firebaseToken: 'x'.repeat(128) });
+  it('rejects malformed OTP verification requests before the service runs', async () => {
+    const req = createRequest({ phone: '+919876543210', code: '12345' });
     const res = createResponse();
     const next: NextFunction = vi.fn();
 
-    await authController.firebaseLogin(req, res as unknown as Response, next);
+    await authController.verifyOtp(req, res as unknown as Response, next);
 
-    expect(next).toHaveBeenCalledWith(expect.any(UnauthorizedError));
-    expect(res.cookies.accessToken).toBeUndefined();
-  });
-
-  it('keeps legacy OTP routes disabled when AUTH_PROVIDER=firebase', async () => {
-    const req = createRequest({ phone: '9876543210' });
-    const res = createResponse();
-    const next: NextFunction = vi.fn();
-
-    await authController.requestOtp(req, res as unknown as Response, next);
-
-    expect(authMocks.requestOtp).not.toHaveBeenCalled();
-    expect(next).toHaveBeenCalledWith(expect.any(ValidationError));
+    expect(authMocks.verifyOtpAndLogin).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.any(ZodError));
   });
 });

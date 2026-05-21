@@ -6,7 +6,6 @@ const router = Router();
 
 router.post('/otp/request', authController.requestOtp);
 router.post('/otp/verify', authController.verifyOtp);
-router.post('/firebase-login', authController.firebaseLogin);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.me);

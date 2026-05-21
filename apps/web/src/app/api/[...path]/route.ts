@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:4000';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 async function proxy(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const target = new URL(`/${path.join('/')}${req.nextUrl.search}`, API_URL);
@@ -47,4 +50,3 @@ export const POST = proxy;
 export const PATCH = proxy;
 export const DELETE = proxy;
 export const OPTIONS = proxy;
-

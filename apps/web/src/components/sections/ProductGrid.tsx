@@ -12,6 +12,7 @@ export function ProductGrid() {
   const storeProducts = useStore((s) => s.products);
   const setProducts = useStore((s) => s.setProducts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const products = storeProducts;
 
   useEffect(() => {
@@ -19,7 +20,16 @@ export function ProductGrid() {
     setLoading(true);
     api<PublicProduct[]>('/v1/products')
       .then((res) => {
-        if (res.data) setProducts(res.data);
+        if (res.data) {
+          setProducts(res.data);
+          setError(null);
+          return;
+        }
+
+        setError(res.error ?? 'No products were returned by the API.');
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Unable to load products.');
       })
       .finally(() => setLoading(false));
   }, [setProducts, storeProducts.length]);
@@ -50,9 +60,10 @@ export function ProductGrid() {
           ))}
         </motion.div>
       ) : (
-        <p className="mx-auto max-w-2xl text-center text-aph-muted">
-          Products are not available yet. Run the seed or check the API connection.
-        </p>
+        <div className="mx-auto max-w-2xl text-center text-aph-muted">
+          <p>Products are not available yet. Run the seed or check the API connection.</p>
+          {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+        </div>
       )}
     </section>
   );

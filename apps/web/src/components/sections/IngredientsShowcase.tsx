@@ -38,8 +38,8 @@ export function IngredientsShowcase() {
           viewport={{ once: true }}
         >
           <p className="mb-2 text-sm uppercase tracking-[0.3em] text-aph-gold">Ingredients</p>
-            <h2 className="font-[family-name:var(--font-display)] text-4xl leading-tight md:text-5xl">
-            Real ingredients. Nothing decorative.
+          <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight md:text-4xl">
+            Real pickle ingredients.
           </h2>
         </motion.div>
 

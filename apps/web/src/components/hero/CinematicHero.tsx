@@ -20,8 +20,8 @@ export function CinematicHero() {
         crop="center"
         priority
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-aph-bg/85 via-aph-bg/52 to-aph-bg/10 dark:from-aph-bg/95 dark:via-aph-bg/70 dark:to-aph-bg/25" />
-      <div className="absolute inset-0 bg-gradient-to-t from-aph-bg/72 via-transparent to-aph-bg/28 dark:from-aph-bg dark:to-aph-bg/55" />
+      <div className="absolute inset-0 bg-gradient-to-r from-aph-bg/35 via-aph-bg/12 to-transparent dark:from-aph-bg/88 dark:via-aph-bg/58 dark:to-aph-bg/18" />
+      <div className="absolute inset-0 bg-gradient-to-t from-aph-bg/38 via-transparent to-aph-bg/10 dark:from-aph-bg/88 dark:to-aph-bg/42" />
       <div className="cinematic-grain absolute inset-0" />
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] max-w-7xl items-center px-6 py-24">
@@ -36,7 +36,7 @@ export function CinematicHero() {
           </motion.p>
 
           <motion.h1
-            className="font-[family-name:var(--font-display)] text-5xl font-light leading-[0.95] text-aph-cream md:text-7xl lg:text-8xl"
+            className="font-[family-name:var(--font-display)] text-5xl font-light leading-[0.95] text-aph-cream drop-shadow-[0_2px_18px_rgba(250,248,245,0.55)] md:text-6xl lg:text-7xl"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.75, delay: 0.08 }}

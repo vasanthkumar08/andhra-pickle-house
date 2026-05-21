@@ -31,8 +31,8 @@ export function BrandStory() {
           transition={{ duration: 0.8 }}
         >
           <p className="text-aph-gold text-sm tracking-[0.3em] uppercase mb-4">Since 1962</p>
-          <h2 className="mb-6 font-[family-name:var(--font-display)] text-4xl font-light leading-tight md:text-5xl">
-            <SplitText text="A Telugu Kitchen. A Sacred Ritual." />
+          <h2 className="mb-6 font-[family-name:var(--font-display)] text-3xl font-light leading-tight md:text-4xl">
+            <SplitText text="A Telugu Kitchen. A Pickle Ritual." />
           </h2>
           <p className="text-aph-muted leading-relaxed mb-4">
             In a small village near Vijayawada, our ammamma began making avakaya under the morning sun.

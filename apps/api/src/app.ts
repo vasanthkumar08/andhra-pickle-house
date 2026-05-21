@@ -73,11 +73,13 @@ export function createApp() {
       : {}),
   });
 
-  const authLimiter = rateLimit({
+  const authWriteLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: 30,
     passOnStoreError: true,
-    message: { success: false, error: 'Too many auth attempts' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many auth attempts. Please wait a few minutes and try again.' },
     ...(redisReady
       ? {
           store: new RedisStore({
@@ -90,11 +92,15 @@ export function createApp() {
 
   app.use(globalLimiter);
 
+  app.use('/v1/auth/otp/request', authWriteLimiter);
+  app.use('/v1/auth/otp/verify', authWriteLimiter);
+  app.use('/v1/auth/refresh', authWriteLimiter);
+
   app.use('/health', healthRoutes);
   app.get('/ready', readinessHandler);
   app.get('/metrics', metricsHandler);
 
-  app.use('/v1/auth', authLimiter, authRoutes);
+  app.use('/v1/auth', authRoutes);
   app.use('/v1/products', productRoutes);
   app.use('/v1/cart', cartRoutes);
   app.use('/v1/orders', orderRoutes);

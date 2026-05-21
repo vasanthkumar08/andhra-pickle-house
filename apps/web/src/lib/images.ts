@@ -3,15 +3,15 @@ export const FALLBACK_PRODUCT_IMAGE =
 
 export const STORY_IMAGES = {
   kitchen:
-    'https://images.pexels.com/photos/6275163/pexels-photo-6275163.jpeg?auto=compress&cs=tinysrgb&w=1200',
+    'https://images.pexels.com/photos/32830296/pexels-photo-32830296.jpeg?auto=compress&cs=tinysrgb&w=1200',
   mangoes:
-    'https://images.pexels.com/photos/2294471/pexels-photo-2294471.jpeg?auto=compress&cs=tinysrgb&w=900',
+    'https://images.pexels.com/photos/12507086/pexels-photo-12507086.jpeg?auto=compress&cs=tinysrgb&w=900',
   chillies:
-    'https://images.pexels.com/photos/4198023/pexels-photo-4198023.jpeg?auto=compress&cs=tinysrgb&w=900',
+    'https://images.pexels.com/photos/5060367/pexels-photo-5060367.jpeg?auto=compress&cs=tinysrgb&w=900',
   mustard:
-    'https://images.pexels.com/photos/4198024/pexels-photo-4198024.jpeg?auto=compress&cs=tinysrgb&w=900',
+    'https://images.pexels.com/photos/5988321/pexels-photo-5988321.jpeg?auto=compress&cs=tinysrgb&w=900',
   oil:
-    'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=900',
+    'https://images.pexels.com/photos/5496350/pexels-photo-5496350.jpeg?auto=compress&cs=tinysrgb&w=900',
 };
 
 const PRODUCT_IMAGE_FALLBACKS: Record<string, string> = {

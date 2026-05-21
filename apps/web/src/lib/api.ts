@@ -82,7 +82,9 @@ export async function api<T>(
     } catch {
       return {
         success: false,
-        error: `API returned HTTP ${res.status} with ${res.headers.get('content-type') || 'unknown content'}`,
+        error: `API returned HTTP ${res.status} with ${
+          res.headers.get('content-type') || 'unknown content'
+        } from ${url}`,
       };
     }
   } catch (err) {

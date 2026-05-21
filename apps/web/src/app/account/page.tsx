@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { LogOut, ShoppingBag, UserCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useStore } from '@/store/use-store';
 
@@ -15,8 +16,9 @@ interface OrderRow {
 }
 
 export default function AccountPage() {
-  const { user, openAuthModal } = useStore();
+  const { user, openAuthModal, setUser, setCart } = useStore();
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -25,10 +27,19 @@ export default function AccountPage() {
     });
   }, [user]);
 
+  const logout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setUser(null);
+    setCart(null);
+    await api('/v1/auth/logout', { method: 'POST' });
+    setLoggingOut(false);
+  };
+
   if (!user) {
     return (
-      <main className="min-h-screen pt-24 px-6 text-center">
-        <button type="button" onClick={() => openAuthModal()} className="text-aph-gold underline">
+      <main className="min-h-screen px-4 pt-28 text-center sm:px-6">
+        <button type="button" onClick={() => openAuthModal()} className="rounded-full bg-aph-gold px-5 py-3 text-sm font-medium text-aph-bg">
           Login to view account
         </button>
       </main>
@@ -36,13 +47,27 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen pt-24 pb-16 px-6 bg-aph-bg">
+    <main className="min-h-screen bg-aph-bg px-4 pb-28 pt-24 sm:px-6">
       <motion.div className="mx-auto max-w-2xl" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl mb-2">My Account</h1>
-        <p className="text-aph-muted mb-8">+{user.phone}</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-aph-border px-3 py-1 text-sm text-aph-muted">
+              <UserCircle size={16} /> Signed in
+            </p>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl">My Account</h1>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            disabled={loggingOut}
+            className="inline-flex items-center gap-2 rounded-full border border-aph-border px-4 py-2 text-sm text-aph-terracotta transition hover:bg-aph-terracotta/10 disabled:opacity-60"
+          >
+            <LogOut size={16} /> {loggingOut ? 'Signing out...' : 'Logout'}
+          </button>
+        </div>
 
         <section className="glass-card rounded-2xl p-6">
-          <h2 className="font-medium mb-4">Order history</h2>
+          <h2 className="mb-4 inline-flex items-center gap-2 font-medium"><ShoppingBag size={17} /> Order history</h2>
           {orders.length === 0 ? (
             <p className="text-aph-muted text-sm">No orders yet.</p>
           ) : (

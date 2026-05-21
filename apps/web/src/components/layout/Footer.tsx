@@ -5,8 +5,8 @@ import { motion } from 'framer-motion';
 export function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="border-t border-aph-gold/10 py-16 px-6 bg-aph-surface">
-      <div className="mx-auto max-w-6xl grid md:grid-cols-3 gap-12">
+    <footer className="border-t border-aph-gold/10 bg-aph-surface px-4 pb-28 pt-16 sm:px-6 md:pb-16">
+      <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-3 md:gap-12">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}

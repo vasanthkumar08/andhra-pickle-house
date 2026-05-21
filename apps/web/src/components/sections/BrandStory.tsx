@@ -3,26 +3,26 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { SplitText } from '../ui/SplitText';
+import { STORY_IMAGES } from '@/lib/images';
 
 export function BrandStory() {
   return (
-    <section id="story" className="relative py-32 px-6">
+    <section id="story" className="relative px-4 py-24 sm:px-6 sm:py-32">
       <motion.div
-        className="mx-auto max-w-6xl grid md:grid-cols-2 gap-16 items-center"
+        className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-16"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true, margin: '-100px' }}
       >
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-aph-border bg-aph-surface shadow-xl">
           <Image
-            src="/images/pickle-kitchen.svg"
-            alt="Illustrated Andhra pickle kitchen with jars, mangoes, spices, and oil"
+            src={STORY_IMAGES.kitchen}
+            alt="Traditional homemade Indian pickle preparation with jars and ingredients"
             fill
-            unoptimized
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 50vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-aph-bg via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-aph-bg/80 via-transparent to-transparent" />
         </div>
         <motion.div
           initial={{ x: 40, opacity: 0 }}
@@ -31,7 +31,7 @@ export function BrandStory() {
           transition={{ duration: 0.8 }}
         >
           <p className="text-aph-gold text-sm tracking-[0.3em] uppercase mb-4">Since 1962</p>
-          <h2 className="font-[family-name:var(--font-display)] text-4xl md:text-5xl font-light mb-6">
+          <h2 className="mb-6 font-[family-name:var(--font-display)] text-4xl font-light leading-tight md:text-5xl">
             <SplitText text="A Telugu Kitchen. A Sacred Ritual." />
           </h2>
           <p className="text-aph-muted leading-relaxed mb-4">

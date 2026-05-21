@@ -2,33 +2,34 @@
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { STORY_IMAGES } from '@/lib/images';
 
 const ingredients = [
   {
     name: 'Raw Mango',
     note: 'Cut firm, sun-kissed, and naturally tangy.',
-    img: '/images/ingredient-mango.svg',
+    img: STORY_IMAGES.mangoes,
   },
   {
     name: 'Red Chilli',
     note: 'Deep color and slow heat from dried chillies.',
-    img: '/images/ingredient-spice.svg',
+    img: STORY_IMAGES.chillies,
   },
   {
     name: 'Mustard',
     note: 'Freshly ground for the sharp Andhra bite.',
-    img: '/images/ingredient-spice.svg',
+    img: STORY_IMAGES.mustard,
   },
   {
     name: 'Cold-Pressed Oil',
     note: 'Sesame oil that carries spice into every piece.',
-    img: '/images/ingredient-oil.svg',
+    img: STORY_IMAGES.oil,
   },
 ];
 
 export function IngredientsShowcase() {
   return (
-    <section className="px-6 py-24">
+    <section className="px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
         <motion.div
           className="mb-12 max-w-2xl"
@@ -37,7 +38,7 @@ export function IngredientsShowcase() {
           viewport={{ once: true }}
         >
           <p className="mb-2 text-sm uppercase tracking-[0.3em] text-aph-gold">Ingredients</p>
-          <h2 className="font-[family-name:var(--font-display)] text-4xl md:text-5xl">
+            <h2 className="font-[family-name:var(--font-display)] text-4xl leading-tight md:text-5xl">
             Real ingredients. Nothing decorative.
           </h2>
         </motion.div>
@@ -46,7 +47,7 @@ export function IngredientsShowcase() {
           {ingredients.map((item, index) => (
             <motion.article
               key={item.name}
-              className="overflow-hidden rounded-xl border border-aph-border bg-aph-card"
+              className="overflow-hidden rounded-xl border border-aph-border bg-aph-card shadow-sm"
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -57,8 +58,7 @@ export function IngredientsShowcase() {
                   src={item.img}
                   alt={item.name}
                   fill
-                  unoptimized
-                  className="object-cover"
+                  className="object-cover transition-transform duration-700 hover:scale-105"
                   sizes="(max-width: 768px) 50vw, 25vw"
                 />
               </div>

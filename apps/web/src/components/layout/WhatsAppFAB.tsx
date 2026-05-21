@@ -10,7 +10,7 @@ export function WhatsAppFAB() {
       href={`https://wa.me/${number}?text=${encodeURIComponent('Hi! I want to order Andhra homemade pickles 🥭')}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-20 md:bottom-8 right-6 z-40 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+      className="fixed bottom-[calc(9.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-[#25D366] shadow-lg transition-transform hover:scale-110 md:bottom-8 md:right-6"
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
       aria-label="Chat on WhatsApp"

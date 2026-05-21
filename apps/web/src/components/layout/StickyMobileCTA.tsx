@@ -8,14 +8,14 @@ export function StickyMobileCTA() {
 
   return (
     <motion.div
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden p-4 bg-gradient-to-t from-aph-bg via-aph-bg/95 to-transparent"
+      className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 p-4 md:hidden"
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ delay: 1 }}
     >
       <button
         onClick={() => setCartDrawerOpen(true)}
-        className="w-full py-4 rounded-full bg-aph-gold text-aph-bg font-medium flex items-center justify-center gap-2 shadow-lg glow-spice"
+        className="mx-auto flex w-full max-w-md items-center justify-center gap-2 rounded-full bg-aph-gold px-5 py-3 font-medium text-aph-bg shadow-lg glow-spice"
         data-cursor="hover"
       >
         <span>Order Pickles</span>

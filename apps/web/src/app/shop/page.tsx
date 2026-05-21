@@ -14,7 +14,7 @@ export default function ShopPage() {
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<string>('');
 
-const load = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
     if (q) params.set('q', q);
@@ -41,31 +41,31 @@ const load = useCallback(async () => {
   }, [load]);
 
   return (
-    <main className="min-h-screen pt-24 pb-16 px-6 bg-aph-bg">
+    <main className="min-h-screen bg-aph-bg px-4 pb-24 pt-24 sm:px-6">
       <motion.div
         className="mx-auto max-w-6xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
+        <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div className="min-w-0">
             <p className="text-aph-gold text-sm tracking-widest uppercase mb-1">Shop</p>
-            <h1 className="font-[family-name:var(--font-display)] text-4xl text-aph-ink">
+            <h1 className="font-[family-name:var(--font-display)] text-4xl leading-tight text-aph-ink">
               Premium Andhra Pickles
             </h1>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto">
             <input
               type="search"
               placeholder="Search pickles..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="px-4 py-2 rounded-full border border-aph-border bg-white min-w-[200px] outline-none focus:border-aph-gold"
+              className="w-full rounded-full border border-aph-border bg-white px-4 py-2 outline-none focus:border-aph-gold sm:w-56"
             />
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="px-4 py-2 rounded-full border border-aph-border bg-white outline-none"
+              className="w-full rounded-full border border-aph-border bg-white px-4 py-2 outline-none sm:w-auto"
             >
               <option value="">Sort</option>
               <option value="rating">Top rated</option>
@@ -77,7 +77,7 @@ const load = useCallback(async () => {
         </div>
 
         {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
             {Array.from({ length: 6 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
@@ -86,7 +86,7 @@ const load = useCallback(async () => {
           <>
             <p className="text-aph-muted text-sm mb-6">{data?.total ?? 0} products</p>
             <motion.div
-              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8"
               initial="hidden"
               animate="visible"
               variants={{ visible: { transition: { staggerChildren: 0.06 } } }}

@@ -13,6 +13,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { WhatsAppFAB } from '@/components/layout/WhatsAppFAB';
 import { StickyMobileCTA } from '@/components/layout/StickyMobileCTA';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 
 const display = Cormorant_Garamond({
   subsets: ['latin'],
@@ -97,6 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <CartDrawer />
                   <WhatsAppFAB />
                   <StickyMobileCTA />
+                  <MobileBottomNav />
                 </SmoothScroll>
               </ErrorBoundary>
             </AppProvider>

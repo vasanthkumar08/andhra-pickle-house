@@ -5,8 +5,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useStore } from '@/store/use-store';
 import { api } from '@/lib/api';
-import { safeImageUrl } from '@/lib/images';
+import { FALLBACK_PRODUCT_IMAGE, productImageUrl } from '@/lib/images';
 import { MagneticButton } from '../ui/MagneticButton';
+
+function CartItemImage({ slug, imageUrl, name }: { slug?: string; imageUrl?: string; name?: string }) {
+  const [src, setSrc] = useState(() => productImageUrl(slug, imageUrl));
+
+  return (
+    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-aph-border bg-aph-surface sm:h-24 sm:w-24">
+      <Image
+        src={src}
+        alt={name ? `${name} pickle jar` : 'Pickle product thumbnail'}
+        fill
+        className="object-cover"
+        sizes="96px"
+        onError={() => setSrc(FALLBACK_PRODUCT_IMAGE)}
+      />
+    </div>
+  );
+}
 
 export function CartDrawer() {
   const { cartDrawerOpen, setCartDrawerOpen, cart, setCart, user } = useStore();
@@ -65,20 +82,27 @@ export function CartDrawer() {
         <motion.div className="fixed inset-0 z-[90]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div className="absolute inset-0 bg-black/60" onClick={() => setCartDrawerOpen(false)} />
           <motion.aside
-            className="absolute right-0 top-0 h-full w-full max-w-md bg-aph-card border-l border-aph-gold/20 flex flex-col"
+            className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-aph-gold/20 bg-aph-card pb-[env(safe-area-inset-bottom)] shadow-2xl"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25 }}
           >
-            <div className="p-6 border-b border-aph-gold/10 flex justify-between items-center">
+            <div className="flex items-center justify-between border-b border-aph-gold/10 p-4 sm:p-6">
               <h2 className="font-[family-name:var(--font-display)] text-2xl">
                 {checkoutStep ? 'Checkout' : 'Your Cart'}
               </h2>
-              <button onClick={() => setCartDrawerOpen(false)} className="text-aph-muted hover:text-aph-cream">✕</button>
+              <button
+                type="button"
+                onClick={() => setCartDrawerOpen(false)}
+                className="grid size-9 place-items-center rounded-full border border-aph-border text-aph-muted transition hover:text-aph-ink"
+                aria-label="Close cart"
+              >
+                ✕
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {orderPlaced ? (
                 <div className="py-12 text-center">
                   <p className="text-aph-gold text-sm tracking-widest uppercase mb-2">Order received</p>
@@ -129,22 +153,18 @@ export function CartDrawer() {
                 </div>
               ) : (
                 cart.items.map((item) => (
-                  <div key={item.id} className="flex gap-4 mb-6 pb-6 border-b border-aph-gold/10">
-                    {item.imageUrl && (
-                      <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
-                        <Image src={safeImageUrl(item.imageUrl)} alt={item.name || ''} fill className="object-cover" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <h4 className="font-medium">{item.name}</h4>
+                  <div key={item.id} className="mb-5 flex min-w-0 gap-3 border-b border-aph-gold/10 pb-5 sm:gap-4">
+                    <CartItemImage slug={item.slug} imageUrl={item.imageUrl} name={item.name} />
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate font-medium">{item.name || 'Andhra Pickle'}</h4>
                       <p className="text-aph-muted text-sm">{item.weightLabel}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <motion.div className="flex gap-2">
-                          <button onClick={() => updateQty(item.id, item.quantity - 1)} className="w-7 h-7 border rounded">−</button>
-                          <span>{item.quantity}</span>
-                          <button onClick={() => updateQty(item.id, item.quantity + 1)} className="w-7 h-7 border rounded">+</button>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <motion.div className="flex items-center gap-2 rounded-full border border-aph-border px-2 py-1">
+                          <button type="button" onClick={() => updateQty(item.id, item.quantity - 1)} className="grid size-7 place-items-center rounded-full text-aph-gold">−</button>
+                          <span className="min-w-5 text-center text-sm">{item.quantity}</span>
+                          <button type="button" onClick={() => updateQty(item.id, item.quantity + 1)} className="grid size-7 place-items-center rounded-full text-aph-gold">+</button>
                         </motion.div>
-                        <span className="text-aph-gold">₹{item.lineTotal / 100}</span>
+                        <span className="shrink-0 text-aph-gold">₹{item.lineTotal / 100}</span>
                       </div>
                     </div>
                   </div>
@@ -153,7 +173,7 @@ export function CartDrawer() {
             </div>
 
             {orderPlaced ? (
-              <div className="p-6 border-t border-aph-gold/10">
+              <div className="border-t border-aph-gold/10 p-4 sm:p-6">
                 <MagneticButton
                   className="w-full"
                   onClick={() => {
@@ -166,7 +186,7 @@ export function CartDrawer() {
                 </MagneticButton>
               </div>
             ) : cart && cart.items.length > 0 ? (
-              <div className="p-6 border-t border-aph-gold/10">
+              <div className="border-t border-aph-gold/10 p-4 sm:p-6">
                 <div className="flex justify-between mb-4 text-lg">
                   <span>Total</span>
                   <span className="text-aph-gold font-medium">₹{cart.subtotal / 100}</span>

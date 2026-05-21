@@ -3,7 +3,7 @@ services:
     name: andhra-pickle-house-api
     env: node
     plan: starter
-    buildCommand: npm install --include=dev && npm run db:deploy -w @aph/api && npm run build:api
+    buildCommand: npm ci --include=dev && npm run db:deploy -w @aph/api && npm run build:api
     startCommand: npm run start -w @aph/api
     healthCheckPath: /health
     envVars:
@@ -16,6 +16,8 @@ services:
       - key: OTP_PROVIDER
         value: twilio
       - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
         sync: false
       - key: REDIS_URL
         sync: false
@@ -37,3 +39,25 @@ services:
         sync: false
       - key: TWILIO_FROM_PHONE
         sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: WHATSAPP_BUSINESS_NUMBER
+        sync: false
+      - key: ADMIN_PHONE
+        sync: false
+      - key: OTP_EXPIRY_MINUTES
+        value: 5
+      - key: OTP_MAX_ATTEMPTS
+        value: 5
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_FOLDER
+        value: andhra-pickle-house
+      - key: CLOUDINARY_REQUIRED
+        value: true
+      - key: WORKER_CONCURRENCY
+        value: 5

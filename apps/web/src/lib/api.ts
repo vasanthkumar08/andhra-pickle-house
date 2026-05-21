@@ -32,6 +32,18 @@ function readCookie(name: string): string | null {
   return entry ? decodeURIComponent(entry.slice(name.length + 1)) : null;
 }
 
+async function ensureCsrfCookie(): Promise<string | null> {
+  const existing = readCookie('csrfToken');
+  if (existing) return existing;
+
+  await fetch('/api/health', {
+    credentials: 'include',
+    cache: 'no-store',
+  }).catch(() => null);
+
+  return readCookie('csrfToken');
+}
+
 async function canReachApi(): Promise<boolean> {
   if (typeof window === 'undefined') return true;
 
@@ -75,7 +87,7 @@ export async function api<T>(
     }
 
     const method = (options.method ?? 'GET').toUpperCase();
-    const csrfToken = ['GET', 'HEAD', 'OPTIONS'].includes(method) ? null : readCookie('csrfToken');
+    const csrfToken = ['GET', 'HEAD', 'OPTIONS'].includes(method) ? null : await ensureCsrfCookie();
 
     const res = await fetch(url, {
       ...options,
